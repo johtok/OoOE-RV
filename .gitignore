@@ -11,3 +11,6 @@
 *.anno.json
 firrtl_black_box_resource_files.f
 .devcontainer
+/synth/**/*
+!/synth/**/Makefile
+!/synth/**/pins.tcl
