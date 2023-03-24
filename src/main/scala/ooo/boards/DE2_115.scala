@@ -13,7 +13,7 @@ class DE2_115 extends Module {
   val io = IO(new Bundle {
     val button = Input(UInt(3.W))
     val switch = Input(UInt(18.W))
-    val greenLed = Output(UInt(8.W))
+    val greenLed = Output(UInt(9.W))
     val redLed = Output(UInt(18.W))
     val digits = Output(Vec(8, new SevenSegmentDigit))
     val uart = new UartPort
@@ -29,16 +29,19 @@ class DE2_115 extends Module {
     TriStateDriver(io.sram.data)(0.U, 1.B)
     TriStateDriver(io.sdram.data)(0.U, 1.B)
 
-    val max = 50000000 / 2
+    val max = 50000000 / 4
+    val timer = RegInit(0.U(log2Ceil(max).W))
+    val tick = timer === max.U
+    timer := Mux(tick, 0.U, timer + 1.U)
+
     val counter = RegInit(0.U(32.W))
-    val tick = counter === max.U
-    counter := Mux(tick, 0.U, counter + 1.U)
+    counter := Mux(tick, counter + 1.U, counter)
 
     val toggleReg = RegInit(0.B)
     toggleReg := Mux(tick, !toggleReg, toggleReg)
 
-    io.greenLed := Fill(8, toggleReg && !io.button(0))
-    io.redLed := Fill(18, toggleReg && !io.button(1))
+    io.greenLed := (toggleReg && io.button(2)) ## Fill(8, toggleReg && io.button(1))
+    io.redLed := Fill(18, toggleReg && io.button(0))
     counter.asBools.grouped(4).map(VecInit(_).asUInt).zip(io.digits).foreach { case (num, digit) => digit.drive(num) }
 
 
@@ -53,24 +56,24 @@ object DE2_115 extends App {
     val segments = UInt(7.W)
     def drive(bits: UInt) = segments := table(bits)
 
-    def table = VecInit(
-      "b1111110".U,
-      "b0110000".U,
-      "b1101101".U,
-      "b1111001".U,
-      "b0110011".U,
-      "b1011011".U,
-      "b1011111".U,
-      "b1110000".U,
-      "b1111111".U,
-      "b1111011".U,
-      "b1110111".U,
-      "b0011111".U,
-      "b1001110".U,
-      "b0111101".U,
-      "b1001111".U,
-      "b1000111".U
-    )
+    def table = VecInit(Seq(
+      "1000000",
+      "1111001",
+      "0100100",
+      "0110000",
+      "0011001",
+      "0010010",
+      "0000010",
+      "1111000",
+      "0000000",
+      "0010000",
+      "0001000",
+      "0000011",
+      "1000110",
+      "0100001",
+      "0000110",
+      "0001110"
+    ).map("b"+_).map(_.U))
   }
   class UartPort extends Bundle {
     val rx = Input(Bool())

@@ -9,5 +9,5 @@ build/%.v: $(SRCS)
 	sbt "runMain ooo.boards.$(notdir $(basename $@))"
 
 clean:
-	rm build/*
-	rmdir build
+	rm build/* || true
+	rmdir build || true
