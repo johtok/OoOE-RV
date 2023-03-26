@@ -1,29 +1,45 @@
 import chisel3._
+import chisel3.util._
 
-
-// Hmm how to split up a vector...
-class ALU(val instruction_width: Int) extends Module {
+class ALU(val XLEN: Int) extends Module {
     val io = IO(new Bundle {
-        val Instruction = Input(Wire(Vec(instruction_width, UInt(1.W))))
-        val result = Output(UInt(32.W))
+        val input_1 = Input(UInt(XLEN.W))
+        val input_2 = Input(UInt(XLEN.W))
+        val alu_fn = Input(UInt(4.W))          // instruction bit 31 & func3
+        val output = Output(UInt(XLEN.W))
     })
 
-// Wire definitions
-val fn7 = UInt(7.W)        //io.Instruction(31:25)
-val fn3 = 3.W        //io.Instruction(14:12)
-val rs1_id = 5.W     //io.Instruction(19:15)
-val rs2_id = 5.W     //io.Instruction(24:20)
-val immidiate = 12.W //io.Instruction(31:20)
-val rd_id = 5.W      //io.Instruction(31:20)
+val input_1 = io.input_1
+val input_2 = io.input_2
+val fn = io.alu_fn
+val output = UInt(XLEN.W)
 
-// fn7 := io.Instruction(31->25)
+switch(fn) {
+    is(0.U) { output := input_1 + input_2   // ADD - We have to do some checking due to negative + negative
+    }
+    is(8.U) { output := input_1 - input_2   // SUB - We have to do some checking due to negative - negative
+    }
+    is(1.U) { output := input_1 << input_2  // SLL
+    }
+    is(2.U) { output := input_1 < input_2   // SLT
+    }
+    is(3.U) { output := input_1 < input2   // SLTU - hmm this seems weird.
+    }
+    is(4.U) { output := input_1 ^ input_2   // XOR
+    }
+    is(5.U) { output := input_1 >> input_2  // SRL
+    }
+    is(13.U) { output := input_1 >> input_2 // SRA
+    }
+    is(6.U) { output := input_1 | input_2  // OR
+    }
+    is(7.U) { output := input_1 & input_2  // AND
+    }
+}
 
-// Default output
-val result = UInt(32.W)
-result := 0.U
+io.output := output
 
-// AUIPC, Should be done in the upper stages.
-
+// AUIPC
 // ADD immidiate
 // AND Immidiate
 // OR  Immidiate
@@ -43,5 +59,4 @@ result := 0.U
 // SRA Immidiate
 // SLT
 // SLT < Unsigned
-
 }
