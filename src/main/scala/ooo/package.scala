@@ -8,12 +8,16 @@ package object ooo {
                             issueQueueSize: Int,
                             loadQueueSize: Int,
                             storeQueueSize: Int,
-                            numOfSnapshotBuffers: Int
+                            numOfSnapshotBuffers: Int,
+                            initialStateMap: Seq[Int]
                           ) {
     val physRegisterIdWidth = log2Ceil(reorderBufferSize).W
     val loadIdWidth = log2Ceil(loadQueueSize).W
     val storeIdWidth = log2Ceil(storeQueueSize).W
     val branchIdWidth = log2Ceil(numOfSnapshotBuffers).W
   }
+
+
+
 
 }

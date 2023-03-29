@@ -22,4 +22,27 @@ package object util {
     }
   }
 
+  object ToggleReg {
+    def apply(init: Bool, event: Bool = 1.B): Bool = {
+      val toggleReg = RegInit(init)
+      when(event) {
+        toggleReg := !toggleReg
+      }
+      toggleReg
+    }
+  }
+
+  implicit class BundleExpander[T <: Bundle](b: T) {
+    def expand(assignments: T => Any*): T = {
+      assignments.foreach(f => f(b))
+      b
+    }
+  }
+
+  implicit class SeqDataExtension[T <: Data](x: Seq[T]) {
+    def toVec: Vec[T] = VecInit(x)
+  }
+
+
+
 }
