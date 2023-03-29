@@ -11,3 +11,23 @@
 *.anno.json
 firrtl_black_box_resource_files.f
 .devcontainer
+.scalafmt.conf
+.bloop/bloop.settings.json
+.bloop/root-test.json
+.bloop/root.json
+.bloop/root/root-analysis.bin
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Hello.scala.semanticdb
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Execution/ALU.scala.semanticdb
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Execution/Execution.scala.semanticdb
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Execution/FU_Branch.scala.semanticdb
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Execution/InstructionDecoder copy.scala.semanticdb
+.bloop/root/bloop-bsp-clients-classes/classes-Metals-RMi4CpCMQVCufEcAt6IecQ==/META-INF/semanticdb/src/main/scala/Execution/InstructionDecoder.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Hello.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Execution/ALU.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Execution/Execution.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Execution/FU_Branch.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Execution/InstructionDecoder copy.scala.semanticdb
+.bloop/root/bloop-internal-classes/classes-Metals-3_7VbWrtRDq0lYGW_H20Qw==-1Qc4ROvaT_-ekzBWy5iG2A==/META-INF/semanticdb/src/main/scala/Execution/InstructionDecoder.scala.semanticdb
+.metals/metals.lock.db
+.metals/metals.mv.db
+.vscode/settings.json

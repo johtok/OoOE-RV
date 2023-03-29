@@ -1,17 +1,30 @@
+package Execution
+
 import chisel3._
 import chisel3.util._
 
-class ALU(val XLEN: Int) extends Module {
-    val io = IO(new Bundle {
+class FU_input(val XLEN: Int) extends Bundle {
         val input_1 = Input(UInt(XLEN.W))
         val input_2 = Input(UInt(XLEN.W))
-        val alu_fn = Input(UInt(4.W))          // instruction bit 31 & func3
-        val output = Output(UInt(XLEN.W))
-    })
+        val FU_fn = Input(UInt(4.W))          // instruction bit 31 & func3
+}
 
-val input_1 = io.input_1
-val input_2 = io.input_2
-val fn = io.alu_fn
+class FU_output(val XLEN: Int) extends Bundle {
+        val output = Output(UInt(XLEN.W))
+}
+class FUInterface(val XLEN: Int) extends Bundle {
+        val in = new FU_input(XLEN)
+        val out = new FU_output(XLEN)
+}
+
+
+
+class ALU(val XLEN: Int) extends Module {
+    val io = IO(new FUInterface(XLEN))
+
+val input_1 = io.in.input_1
+val input_2 = io.in.input_2
+val fn = io.in.FU_fn
 val output = UInt(XLEN.W)
 
 switch(fn) {
@@ -23,7 +36,7 @@ switch(fn) {
     }
     is(2.U) { output := input_1 < input_2   // SLT
     }
-    is(3.U) { output := input_1 < input2   // SLTU - hmm this seems weird.
+    is(3.U) { output := input_1 < input_2   // SLTU - hmm this seems weird.
     }
     is(4.U) { output := input_1 ^ input_2   // XOR
     }
@@ -37,7 +50,7 @@ switch(fn) {
     }
 }
 
-io.output := output
+io.out.output := output
 
 // AUIPC
 // ADD immidiate
