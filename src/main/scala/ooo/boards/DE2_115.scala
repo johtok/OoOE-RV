@@ -2,10 +2,9 @@ package ooo.boards
 
 import chisel3._
 import chisel3.experimental.Analog
-import chisel3.util.{Fill, log2Ceil}
-import ooo.TriStateDriver
+import chisel3.util.{Counter, Fill, log2Ceil}
 import ooo.boards.DE2_115.{SdramPort, SevenSegmentDigit, SramPort, UartPort}
-
+import ooo.util.{TickGen, TriStateDriver, UIntSeqExtension}
 
 
 class DE2_115 extends Module {
@@ -29,21 +28,17 @@ class DE2_115 extends Module {
     TriStateDriver(io.sram.data)(0.U, 1.B)
     TriStateDriver(io.sdram.data)(0.U, 1.B)
 
-    val max = 50000000 / 4
-    val timer = RegInit(0.U(log2Ceil(max).W))
-    val tick = timer === max.U
-    timer := Mux(tick, 0.U, timer + 1.U)
+    val tick = TickGen(50000000, 8)
 
-    val counter = RegInit(0.U(32.W))
-    counter := Mux(tick, counter + 1.U, counter)
+    val (counter, _) = Counter(0 until 0xFFFFFFFF, tick)
 
-    val toggleReg = RegInit(0.B)
-    toggleReg := Mux(tick, !toggleReg, toggleReg)
+    io.greenLed := (counter(0) && io.button(2)) ## Fill(8, counter(0) && io.button(1))
+    io.redLed := Fill(18, counter(0) && io.button(0))
 
-    io.greenLed := (toggleReg && io.button(2)) ## Fill(8, toggleReg && io.button(1))
-    io.redLed := Fill(18, toggleReg && io.button(0))
-    counter.asBools.grouped(4).map(VecInit(_).asUInt).zip(io.digits).foreach { case (num, digit) => digit.drive(num) }
-
+    counter
+      .groupBits(4)
+      .zip(io.digits)
+      .foreach { case (num, digit) => digit.drive(num) }
 
   }
 }

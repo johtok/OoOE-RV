@@ -1,10 +1,9 @@
-package ooo
-
+package ooo.util
 
 import chisel3._
 import chisel3.experimental.{Analog, attach}
 import chisel3.internal.firrtl.Width
-import chisel3.util.{HasBlackBoxInline, Valid, ValidIO}
+import chisel3.util.HasBlackBoxInline
 
 object TriStateDriver {
   def apply(wire: Analog)(driveData: UInt, drive: Bool): UInt = {
