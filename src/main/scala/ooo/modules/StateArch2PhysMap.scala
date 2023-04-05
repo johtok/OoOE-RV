@@ -22,13 +22,13 @@ class StateArch2PhysMap(implicit c: Configuration) extends Module {
 
   val rf = RegInit(Vec(32, PhysRegisterId()), c.initialStateMap.map(_.U).toVec)
 
-  io.read.pids := io.read.rs.map { rs => Mux(
+  io.read.prs := io.read.rs.map { rs => Mux(
     rs === io.write.rd && io.write.write,
-    io.write.pid,
+    io.write.prd,
     rf(rs)
   ) }
 
-  when(io.write.write) { rf(io.write.rd) := io.write.pid }
+  when(io.write.write) { rf(io.write.rd) := io.write.prd }
 
   io.allocationCheck.isAllocated := rf.map(_ === io.allocationCheck.newPid).toVec.reduceTree(_ || _)
 

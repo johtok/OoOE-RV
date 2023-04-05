@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.experimental.Analog
 import chisel3.util.{Counter, Fill, log2Ceil}
 import ooo.boards.DE2_115.{SdramPort, SevenSegmentDigit, SramPort, UartPort}
-import ooo.util.{TickGen, TriStateDriver, UIntSeqExtension}
+import ooo.util.{TickGen, TriStateDriver, UIntExtension}
 
 
 class DE2_115 extends Module {

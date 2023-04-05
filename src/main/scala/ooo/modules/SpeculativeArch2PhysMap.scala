@@ -28,13 +28,13 @@ class SpeculativeArch2PhysMap(implicit c: Configuration) extends Module {
   val rf = Reg(Vec(32, PhysRegisterId()))
   val snapshots = Reg(Vec(c.numOfSnapshotBuffers, Vec(32, PhysRegisterId())))
 
-  io.read.pids := io.read.rs.map { rs => Mux(
+  io.read.prs := io.read.rs.map { rs => Mux(
     rs === io.write.rd && io.write.write,
-    io.write.pid,
+    io.write.prd,
     rf(rs))
   }
 
-  when(io.write.write) { rf(io.write.rd) := io.write.pid }
+  when(io.write.write) { rf(io.write.rd) := io.write.prd }
 
   when(io.save.takeSnapshot) { snapshots(io.save.branchId) := rf }
   when(io.restore.restoreSnapshot) { rf := snapshots(io.restore.branchId) }
