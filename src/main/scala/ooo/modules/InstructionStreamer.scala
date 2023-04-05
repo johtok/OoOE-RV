@@ -7,7 +7,7 @@ import firrtl.annotations.MemoryArrayInitAnnotation
 import ooo.Configuration
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{BranchPrediction, Event, EventType, InstructionPackage, Opcode, Word}
-import ooo.util.{BundleExpander, Program, ReadOnlyMemory, SIntExtension, UIntSeqExtension}
+import ooo.util.{BundleExpander, Program, SIntExtension, UIntSeqExtension}
 
 import scala.util.Random
 
