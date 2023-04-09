@@ -45,7 +45,7 @@ class IssueQueueTest extends AnyFlatSpec with ChiselScalatestTester {
 
     println(n)
 
-    test(new IssueQueue(n+10,n)) { dut =>
+    test(new IssueQueue(n+2,n)) { dut =>
       for(id <- 0 until n) {
 
         /*
@@ -65,7 +65,8 @@ class IssueQueueTest extends AnyFlatSpec with ChiselScalatestTester {
         dut.clock.step()
         //println(id)
       }
-
+      
+      dut.io.Alloc.valid.poke(0.B)
       dut.io.Alloc.ready.expect(0.B)
 
       dut.io.Event.poke(true.B)
