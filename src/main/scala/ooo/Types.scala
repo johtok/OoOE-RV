@@ -16,7 +16,7 @@ object Types {
 
 
   object MicroOp extends ChiselEnum {
-    val Load, Store, Branch, Jump, IntegerArithmetic, IntegerLogic = Value // TODO: more?
+    val Load, Store, Branch, Jump, Register, Immediate = Value // TODO: more?
   }
 
   object BranchPrediction extends ChiselEnum {
@@ -28,6 +28,7 @@ object Types {
     val func = UInt(4.W)
     val prs = Vec(2, new Bundle { val ready = Bool(); val id = PhysRegisterId() })
     val prd = PhysRegisterId()
+    val immediate = Word()
     val pc = Word()
     val branchId = BranchId()
     val branchPrediction = BranchPrediction()
