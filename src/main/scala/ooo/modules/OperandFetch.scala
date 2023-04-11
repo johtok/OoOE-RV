@@ -48,4 +48,3 @@ class OperandFetch()(implicit c: Configuration) extends Module {
   }
 }
 
-object Penis extends App { emitVerilog(new OperandFetch()(Configuration.random()))}

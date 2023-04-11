@@ -2,7 +2,7 @@ package ooo.modules
 
 import chisel3._
 import ooo.Configuration
-import ooo.Types.{ArchRegisterId, PhysRegisterId, Word}
+import ooo.Types.{ArchRegisterId, PhysRegisterId, Word,ReadPort}
 
 
 class ReorderBuffer(implicit c: Configuration) extends Module {
@@ -10,10 +10,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
 
     val data = new Bundle {
-      val read = Vec(2, new Bundle {
-        val pr = Input(PhysRegisterId())
-        val operand = Output(Word())
-      })
+      val read = Flipped(new ReadPort)
       val write = Input(new Bundle {
         val pr = PhysRegisterId()
         val data = Word()
@@ -51,7 +48,12 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   val readyMem = SyncReadMem(c.reorderBufferSize, Bool())
   val destMem = SyncReadMem(c.reorderBufferSize, ArchRegisterId())
 
-  io.data.read.foreach(r => r.operand := dataMem.read(r.pr))
+  //io.data.read.foreach(r => r.ReadData := dataMem.read(r.Address))
+
+  io.data.read.ReadData(0) := dataMem.read(io.data.read.Address(0).id)
+  io.data.read.ReadData(1) := dataMem.read(io.data.read.Address(1).id)
+
+
   when(io.data.write.write) { dataMem.write(io.data.write.pr, io.data.write.data) }
 
   io.ready.read.foreach(r => r.isReady := readyMem.read(r.pr))
