@@ -2,10 +2,8 @@ package ooo.modules
 
 import chisel3._
 import chisel3.internal.firrtl.Width
-//import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
 import ooo.Configuration
-//import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
 import ooo.util.BundleExpander
 
