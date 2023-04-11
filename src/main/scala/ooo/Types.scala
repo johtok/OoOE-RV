@@ -36,10 +36,28 @@ object Types {
     val storeId = StoreId()
   }
 
+  class ExecutePackage(implicit c: Configuration) extends Bundle {
+    val microOp = MicroOp()
+    val func = UInt(4.W)
+    val operands = Vec(2, Word())
+    val prd = PhysRegisterId()
+    val immediate = Word()
+    val pc = Word()
+    val branchId = BranchId()
+    val branchPrediction = BranchPrediction()
+    val loadId = LoadId()
+    val storeId = StoreId()
+  }
+
   class InstructionPackage extends Bundle {
     val instruction = Word()
     val branchPrediction = BranchPrediction()
     val pc = Word()
+  }
+
+  class ReadPort(implicit c: Configuration) extends Bundle{
+    val Address  = Output(Vec(2, new Bundle { val ready = Bool(); val id = PhysRegisterId() }))
+    val ReadData = Input(Vec(2,Word()))
   }
 
   object EventType extends ChiselEnum {

@@ -164,4 +164,3 @@ class IssueElement()(implicit c: Configuration) extends Module{
 
 }
 
-object Penis extends App { emitVerilog(new IssueQueue()(Configuration.random()))}
