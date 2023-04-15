@@ -11,6 +11,8 @@ class Execute()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val Instruction = Flipped(Decoupled(new ExecutePackage))
     val eventBus = Valid(new Event)
+    val Writeback = Decoupled(new WritePort)
+
   })
 
 

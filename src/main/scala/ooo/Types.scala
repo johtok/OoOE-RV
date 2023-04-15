@@ -60,9 +60,15 @@ object Types {
     val ReadData = Input(Vec(2,Word()))
   }
 
-  object EventType extends ChiselEnum {
-    val Branch, Jump, Exception = Value
+  class WritePort(implicit c: Configuration) extends Bundle{
+    val Address = PhysRegisterId()
+    val WriteData = Word()
   }
+
+  object EventType extends ChiselEnum {
+    val Writeback, Branch, Jump, Exception = Value
+  }
+  
   class Event(implicit c: Configuration) extends Bundle {
     val eventType = EventType()
     val pr = PhysRegisterId()

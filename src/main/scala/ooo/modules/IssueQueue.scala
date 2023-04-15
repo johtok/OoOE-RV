@@ -4,6 +4,7 @@ import chisel3._
 import chisel3.internal.firrtl.Width
 //import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
+import ooo.Types.EventType._
 import ooo.Configuration
 //import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
@@ -131,6 +132,18 @@ class IssueElement()(implicit c: Configuration) extends Module{
     when(io.Port.eventBus.bits.pr === valueReg.prs(1).id){
       valueReg.prs(1).ready := true.B
     }
+
+    // Branch / Jump kill 
+
+    when(io.Port.eventBus.bits.pr < valueReg.prd && (io.Port.eventBus.bits.eventType === Branch || io.Port.eventBus.bits.eventType === Jump)){
+      valueReg.prs(0).ready := false.B
+      valueReg.prs(1).ready := false.B
+
+      emptyReg := true.B
+      AgeReg := 0.U
+    }
+
+
   }
 
 
