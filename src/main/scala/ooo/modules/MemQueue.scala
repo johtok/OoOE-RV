@@ -39,15 +39,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   io.MemPort.bits.WriteData := 0.U
   io.MemPort.bits.WriteEn := false.B
 
-  //io.MemPort.bits.ReadData := false.B
-  //io.MemPort.bits.ReadValid := false.B
 
-  //io.MemPort.bits.ReadData.bits := 0.U
-  //io.MemPort.bits.ReadData.valid := false.B
-
-
-
-  // Recieve Data 
 
   val MemQueue = Reg(Vec(c.memQueueSize, new QueueElementPort()))
 
@@ -118,6 +110,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
       ReadData.Expect := false.B
     }
   }
+
 }
 
 
