@@ -2,13 +2,11 @@ package ooo.modules
 
 import chisel3._
 import chisel3.internal.firrtl.Width
-//import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
+import ooo.Types.EventType._
 import ooo.Configuration
-//import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
-import ooo.modules.IssueQueue.{ ElementPort}
-import ooo.util.BundleExpander
+
 
 class ROBWriteArbiter()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
@@ -23,12 +21,21 @@ class ROBWriteArbiter()(implicit c: Configuration) extends Module {
   io.Writeback.ready := !io.LoadWrite.valid
   io.Write.valid := false.B
 
+  io.event.bits.pc := 0.U
+  io.event.bits.eventType := Writeback  
+  io.event.valid := false.B
+
+  io.Write.bits := io.LoadWrite.bits
+  io.event.bits.pr := io.LoadWrite.bits.Address
+
+
   when(io.LoadWrite.valid){
-    io.Write.bits := io.LoadWrite.bits
     io.Write.valid := true.B
+    io.event.valid := true.B 
   }.elsewhen(io.Writeback.valid){
     io.Write.bits := io.Writeback.bits
     io.Write.valid := true.B
+    io.event.bits.pr := io.Writeback.bits.Address
+    io.event.valid := true.B
   }
 }
-
