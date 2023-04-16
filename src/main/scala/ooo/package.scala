@@ -9,12 +9,14 @@ package object ooo {
   case class Configuration(
                             reorderBufferSize: Int,
                             issueQueueSize: Int,
+                            memQueueSize: Int,
                             loadQueueSize: Int,
                             storeQueueSize: Int,
                             numOfSnapshotBuffers: Int,
                             initialStateMap: Seq[Int]
                           ) {
     val physRegisterIdWidth = log2Ceil(reorderBufferSize).W
+    val memIdWidth = log2Ceil(memQueueSize).W
     val loadIdWidth = log2Ceil(loadQueueSize).W
     val storeIdWidth = log2Ceil(storeQueueSize).W
     val branchIdWidth = log2Ceil(numOfSnapshotBuffers).W
@@ -28,13 +30,10 @@ package object ooo {
         Random.nextPow2(16 to 64),
         Random.nextPow2(4 to 32),
         Random.nextPow2(4 to 32),
+        Random.nextPow2(4 to 32),
         Random.nextPow2(2 to 8),
         Seq.fill(32)(Random.nextInt(0 until robSize))
       )
     }
   }
-
-
-
-
 }

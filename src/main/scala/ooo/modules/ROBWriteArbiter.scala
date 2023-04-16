@@ -16,6 +16,7 @@ class ROBWriteArbiter()(implicit c: Configuration) extends Module {
     val Writeback = Flipped(Decoupled(new WritePort))
 
     val Write = Valid(new WritePort)
+    val event = Valid(new Event)
   })
 
   io.LoadWrite.ready := true.B

@@ -2,7 +2,7 @@ package ooo
 
 import chisel3._
 import chisel3.experimental.ChiselEnum
-import chisel3.util.{Fill, Valid}
+import chisel3.util.{Fill, Valid, Decoupled}
 
 object Types {
 
@@ -11,7 +11,7 @@ object Types {
   object ArchRegisterId { def apply() = UInt(5.W) }
   object PhysRegisterId { def apply()(implicit c: Configuration) = UInt(c.physRegisterIdWidth) }
   object BranchId { def apply()(implicit c: Configuration) = UInt(c.branchIdWidth) }
-  object LoadId { def apply()(implicit c: Configuration) = UInt(c.loadIdWidth) }
+  object LoadId { def apply()(implicit c: Configuration) = UInt(c.memIdWidth) }
   object StoreId { def apply()(implicit c: Configuration) = UInt(c.storeIdWidth) }
 
 
@@ -75,6 +75,16 @@ object Types {
     val pc = Word()
   }
 
+  class MemPackage(implicit c: Configuration) extends Bundle {
+    val func = Bool() // 0 = read, 1 = write
+    val prd = PhysRegisterId()
+    //val immediate = Word()
+    //val operand = Word()
+    val Address = Word()
+
+    //val storeId = StoreId()
+  }
+
   object Opcode extends ChiselEnum {
     val load = Value(0x03.U) // I-type | 0x03
     val miscMem = Value(0x0F.U) // I-type | 0x0F
@@ -91,6 +101,18 @@ object Types {
     def fromInstruction(instr: UInt): Opcode.Type = Opcode.safe(instr(6, 0))._1
     def safeFromInstruction(instr: UInt): (Opcode.Type, Bool) = Opcode.safe(instr(6, 0))
   }
+
+  class MemPort(implicit c: Configuration) extends Bundle{
+    val Address = Output(Word())
+    val WriteData = Output(Word())
+    val WriteEn = Output(Bool())
+
+    val ReadData = Flipped(Valid(Word()))
+    //val ReadData = Input(Word())
+    //val ReadValid = Input(Bool())
+
+  }
+
 
   object Immediate {
 
