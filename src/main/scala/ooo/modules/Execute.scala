@@ -15,6 +15,7 @@ class Execute()(implicit c: Configuration) extends Module {
 
   })
 
+  io.elements.foreach(_._2 := DontCare)
 
 }
 

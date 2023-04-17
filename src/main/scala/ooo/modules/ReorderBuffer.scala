@@ -12,7 +12,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
     val data = new Bundle {
       val read = Flipped(new ReadPort)
-      val write = Valid(Flipped(new WritePort))
+      val write = Flipped(Valid(new WritePort))
     }
 
     val ready = new Bundle {
@@ -54,10 +54,12 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   when(io.data.write.valid) { dataMem.write(io.data.write.bits.Address, io.data.write.bits.WriteData) }
 
   io.ready.read.foreach(r => r.isReady := readyMem.read(r.pr))
-  when(io.ready.update.markAsReady) { readyMem.write(io.ready.update.pr, 1.B) }
+  when(io.ready.update.markAsReady) { readyMem.write(io.ready.update.pr, 1.B) } // TODO: this creates wrong hardware (no write enable)
 
   io.destination.read.rd := destMem.read(io.destination.read.pr)
   when(io.destination.write.write) { destMem.write(io.destination.write.pr, io.destination.write.rd) }
 
 
 }
+
+object ReorderBuffer extends App { emitVerilog(new ReorderBuffer()(Configuration.default()))}

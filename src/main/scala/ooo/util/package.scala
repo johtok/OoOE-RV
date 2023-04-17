@@ -19,6 +19,7 @@ package object util {
 
   implicit class PairConnector[T <: Data](ps: Seq[(T,T)]) {
     def connectPairs(): Unit = ps.foreach { case (port, value) => port := value }
+    def bulkConnectPairs(): Unit = ps.foreach { case (port, value) => port <> value }
   }
 
   implicit class SIntExtension(x: SInt) {

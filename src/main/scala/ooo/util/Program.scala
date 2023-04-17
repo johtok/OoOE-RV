@@ -4,6 +4,7 @@ import chisel3._
 
 import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
+import scala.util.Random
 
 case class Program(name: String, bytes: Seq[Int]) {
   def getBytes: Seq[UInt] = bytes.map(_.U(8.W))
@@ -15,6 +16,11 @@ case class Program(name: String, bytes: Seq[Int]) {
     .toSeq
 }
 object Program {
+
+  def random(): Program = Program(
+    "Random",
+    Seq.fill(1024)(Random.nextInt(255))
+  )
 
   def load(fileName: String): Program = {
     Program(

@@ -5,7 +5,7 @@ import chisel3.util.{Decoupled, MuxCase, Valid}
 import ooo.Configuration
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, MicroOp, Opcode, PhysRegisterId}
-import ooo.util.{BundleExpander, LookUp, PairConnector, SeqDataExtension}
+import ooo.util.{BundleExpander, LookUp, PairConnector}
 
 
 class Decoder()(implicit c: Configuration) extends Module {
