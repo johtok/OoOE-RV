@@ -17,6 +17,10 @@ package object util {
     }
   }
 
+  implicit class PairConnector[T <: Data](ps: Seq[(T,T)]) {
+    def connectPairs(): Unit = ps.foreach { case (port, value) => port := value }
+  }
+
   implicit class SIntExtension(x: SInt) {
     def sign: Bool = x(x.getWidth - 1)
   }
@@ -84,6 +88,14 @@ package object util {
     def nextLoadId()(implicit c: Configuration) = nextUInt(c.loadIdWidth)
 
     def nextStoreId()(implicit c: Configuration) = nextUInt(c.storeIdWidth)
+  }
+
+
+  object LookUp {
+    import chisel3.util.MuxLookup
+    def apply[T <: Data, P <: Data](key: T, default: P, cases: (T, P)*): P = {
+      MuxLookup(key.asUInt, default, cases.map { case (k, v) => (k.asUInt, v) })
+    }
   }
 
 
