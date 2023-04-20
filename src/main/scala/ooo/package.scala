@@ -35,5 +35,16 @@ package object ooo {
         Seq.fill(32)(Random.nextInt(0 until robSize))
       )
     }
+    def default(): Configuration = {
+      Configuration(
+        128,
+        16,
+        8,
+        8,
+        8,
+        4,
+        Seq.range(0,32)
+      )
+    }
   }
 }

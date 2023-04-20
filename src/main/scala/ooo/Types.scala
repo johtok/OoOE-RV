@@ -3,6 +3,7 @@ package ooo
 import chisel3._
 import chisel3.experimental.ChiselEnum
 import chisel3.util.{Fill, Valid, Decoupled}
+import ooo.util.LookUp
 
 object Types {
 
@@ -73,6 +74,7 @@ object Types {
     val eventType = EventType()
     val pr = PhysRegisterId()
     val pc = Word()
+    val branchId = BranchId()
   }
 
   class MemPackage(implicit c: Configuration) extends Bundle {
@@ -114,12 +116,33 @@ object Types {
 
   }
 
+  object InstructionType extends ChiselEnum {
+    val R, I, S, B, U, J = Value
+
+    def fromOpcode(opcode: Opcode.Type): InstructionType.Type = {
+      LookUp(opcode, R,
+        Opcode.load -> I,
+        Opcode.miscMem -> I,
+        Opcode.immediate -> I,
+        Opcode.auipc -> U,
+        Opcode.store -> S,
+        Opcode.register -> R,
+        Opcode.lui -> U,
+        Opcode.branch -> B,
+        Opcode.jalr -> I,
+        Opcode.jal -> J,
+        Opcode.system -> I
+      )
+    }
+  }
 
   object Immediate {
 
     implicit class InstructionFieldExtractor(i: UInt) {
       require(i.getWidth == 32)
       def opcode: Opcode.Type = Opcode.fromInstruction(i)
+
+      def instructionType: InstructionType.Type = InstructionType.fromOpcode(opcode)
       object immediate {
         def iType: SInt = (Fill(21, i(31)) ## i(30, 25) ## i(24, 21) ## i(20)).asSInt
 
