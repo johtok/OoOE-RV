@@ -102,14 +102,15 @@ object Types {
     def safeFromInstruction(instr: UInt): (Opcode.Type, Bool) = Opcode.safe(instr(6, 0))
   }
 
+
   class MemPort(implicit c: Configuration) extends Bundle{
     val Address = Output(Word())
     val WriteData = Output(Word())
     val WriteEn = Output(Bool())
 
-    val ReadData = Flipped(Valid(Word()))
-    //val ReadData = Input(Word())
-    //val ReadValid = Input(Bool())
+    //val ReadData = Flipped(new StupidBundle)
+    //val ReadData = Input(Valid(Word()))
+    //val ReadData = Valid(bo)
 
   }
 

@@ -4,6 +4,8 @@ import chisel3._
 import chisel3.internal.firrtl.Width
 //import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
+import ooo.Types.EventType._
+
 import ooo.Configuration
 //import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
@@ -23,7 +25,10 @@ class MemQueue()(implicit c: Configuration) extends Module {
     val Package = Flipped(Decoupled(new MemPackage))
     val Write = Decoupled(new WritePort)
     val MemPort = Decoupled(new MemPort)
+    val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
     val Retire = Flipped(Decoupled(PhysRegisterId()))
+
+    val event = Flipped(Valid(new Event))
   })
 
   io.MemPort.valid := false.B
@@ -45,6 +50,11 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   io.Package.ready := VecInit(Seq.tabulate(c.memQueueSize)(n => MemQueue(n).empty)).reduceTree(_ | _)
 
+
+  val Kill = Wire(Bool())
+  Kill := io.event.valid && io.event.bits.eventType === Branch
+
+
   val WriteCarry = Wire(Vec(c.memQueueSize + 1, Bool()))
   WriteCarry(0) := false.B
 
@@ -52,7 +62,9 @@ class MemQueue()(implicit c: Configuration) extends Module {
     WriteCarry(i) := false.B
   }
 
-  when(io.Package.valid){
+  // Add kill logic. 
+
+  when(io.Package.valid && !(Kill && io.Package.bits.prd > io.event.bits.pr)){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
         when(MemQueue(i).empty){
@@ -68,12 +80,25 @@ class MemQueue()(implicit c: Configuration) extends Module {
     }
   } 
 
+  // Kill 
+
+  when(Kill){
+    for(i <- 0 until c.memQueueSize){
+      when(MemQueue(i).In.prd > io.event.bits.pr){
+        MemQueue(i).empty := true.B
+      }
+    }
+  }
+
+
+
+
+
   //Transmit data
 
   //val ExpectData = RegInit(0.B)
 
   val ReadData = Reg(new Bundle { val Expect = Bool(); val id = PhysRegisterId() })
-
 
   when(io.MemPort.ready){
     io.Retire.ready := true.B
@@ -102,15 +127,20 @@ class MemQueue()(implicit c: Configuration) extends Module {
   }
 
   when(ReadData.Expect){
-    when(io.MemPort.bits.ReadData.valid && io.Write.ready){
+    //when(io.MemPort.bits.ReadData.valid && io.Write.ready){
+    //when(io.MemPort.bits.ReadData.ReadData.valid && io.Write.ready){
+    when(io.MemPortReadData.valid && io.Write.ready){
+
       io.Write.bits.Address := ReadData.id
-      io.Write.bits.WriteData := io.MemPort.bits.ReadData
+      io.Write.bits.WriteData := io.MemPortReadData.bits 
       io.Write.valid := true.B
 
       ReadData.Expect := false.B
     }
   }
 
+  
 }
 
 
+object penis extends App { emitVerilog(new MemQueue()(Configuration.random()))}
