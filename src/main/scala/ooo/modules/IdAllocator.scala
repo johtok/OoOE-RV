@@ -3,7 +3,7 @@ package ooo.modules
 import chisel3._
 import chisel3.internal.firrtl.Width
 import chisel3.util.{MuxCase, log2Ceil}
-import ooo.modules.IdAllocator.{AllocationPort, DeallocationPort, PushBackPort}
+import ooo.modules.IdAllocator.{AllocationPort, AllocatorStatePort, DeallocationPort, PushBackPort}
 import ooo.util.BundleExpander
 
 object IdAllocator {
@@ -49,6 +49,7 @@ class IdAllocator(idCount: Int) extends Module {
     val alloc = new AllocationPort(w)
     val dealloc = new DeallocationPort(w)
     val pushBack = new PushBackPort(w)
+    val state = new AllocatorStatePort(w)
   })
 
   val head = RegInit(Id(), 0.U)
