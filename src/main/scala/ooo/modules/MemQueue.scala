@@ -6,6 +6,8 @@ import chisel3.internal.firrtl.Width
 import ooo.Types._
 import ooo.Types.EventType._
 
+import ooo.modules.IdAllocator.{DeallocationPort}
+
 import ooo.Configuration
 //import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
@@ -23,33 +25,43 @@ object MemQueue {
 class MemQueue()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val Package = Flipped(Decoupled(new MemPackage))
-    val Write = Decoupled(new WritePort)
+    //val Write = Decoupled(new WritePort)
+    val EventOut = Decoupled(new Event)
     val MemPort = Decoupled(new MemPort)
     val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
-    val Retire = Flipped(Decoupled(PhysRegisterId()))
+    //val Retire = Flipped(Decoupled(PhysRegisterId()))
 
     val event = Flipped(Valid(new Event))
+
+    val Dealloc = Flipped(new DeallocationPort(c.physRegisterIdWidth))
+
+
+    val Full = Output(Bool())
   })
+
+  val Fullsize = log2Ceil(c.memQueueSize) - 2
 
   io.MemPort.valid := false.B
   io.MemPort.bits.WriteEn := false.B
 
-  io.Retire.ready := io.MemPort.ready
-
-  io.Write.bits.Address := 0.U
-  io.Write.bits.WriteData := 0.U
-  io.Write.valid := false.B
+  //io.Retire.ready := io.MemPort.ready
 
   io.MemPort.bits.Address := 0.U
   io.MemPort.bits.WriteData := 0.U
   io.MemPort.bits.WriteEn := false.B
 
-
+  io.EventOut.bits := DontCare
+  io.EventOut.valid := false.B
 
   val MemQueue = Reg(Vec(c.memQueueSize, new QueueElementPort()))
 
   io.Package.ready := VecInit(Seq.tabulate(c.memQueueSize)(n => MemQueue(n).empty)).reduceTree(_ | _)
 
+  val FullCnt = Wire(UInt(log2Ceil(c.memQueueSize).W))
+  
+  FullCnt := PopCount(Seq.tabulate(c.memQueueSize)(n => MemQueue(n).empty)) 
+
+  io.Full := (FullCnt >= Fullsize.U).asBool
 
   val Kill = Wire(Bool())
   Kill := io.event.valid && io.event.bits.eventType === Branch
@@ -61,6 +73,8 @@ class MemQueue()(implicit c: Configuration) extends Module {
   for(i <- 0 until c.memQueueSize + 1){
     WriteCarry(i) := false.B
   }
+
+
 
   // Add kill logic. 
 
@@ -91,9 +105,6 @@ class MemQueue()(implicit c: Configuration) extends Module {
   }
 
 
-
-
-
   //Transmit data
 
   //val ExpectData = RegInit(0.B)
@@ -101,11 +112,11 @@ class MemQueue()(implicit c: Configuration) extends Module {
   val ReadData = Reg(new Bundle { val Expect = Bool(); val id = PhysRegisterId() })
 
   when(io.MemPort.ready){
-    io.Retire.ready := true.B
+    //io.Retire.ready := true.B
 
-    when(io.Retire.valid){
+    when(io.Dealloc.noAllocations){
       for(i <- 0 until c.memQueueSize){
-        when(MemQueue(i).In.prd === io.Retire.bits){
+        when(MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId){
           io.MemPort.valid := true.B
 
           io.MemPort.bits.Address := MemQueue(i).In.Address
@@ -113,6 +124,10 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
           when(MemQueue(i).In.func){ // Write
             io.MemPort.bits.WriteEn := true.B
+
+            io.EventOut.valid := true.B
+            io.EventOut.bits.eventType := CompletionWithValue
+
           }.otherwise{ // Read
             io.MemPort.bits.WriteEn := false.B
             ReadData.Expect := true.B // Indicates that the system should expect readdata soon
@@ -129,12 +144,22 @@ class MemQueue()(implicit c: Configuration) extends Module {
   when(ReadData.Expect){
     //when(io.MemPort.bits.ReadData.valid && io.Write.ready){
     //when(io.MemPort.bits.ReadData.ReadData.valid && io.Write.ready){
-    when(io.MemPortReadData.valid && io.Write.ready){
+    when(io.MemPortReadData.valid && io.EventOut.ready){
+
+      /*
 
       io.Write.bits.Address := ReadData.id
       io.Write.bits.WriteData := io.MemPortReadData.bits 
       io.Write.valid := true.B
 
+      */
+
+      io.EventOut.bits.pr := ReadData.id
+      io.EventOut.bits.writeBackValue := io.MemPortReadData.bits 
+      io.EventOut.valid := true.B
+
+      io.EventOut.bits.eventType := CompletionWithValue
+    
       ReadData.Expect := false.B
     }
   }

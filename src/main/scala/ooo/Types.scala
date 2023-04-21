@@ -67,7 +67,7 @@ object Types {
   }
 
   object EventType extends ChiselEnum {
-    val CompletionWithValue, Completion, Branch, Jump, Exception,  = Value
+    val CompletionWithValue, Completion, Branch, Jump, Exception = Value
   }
   
   class Event(implicit c: Configuration) extends Bundle {

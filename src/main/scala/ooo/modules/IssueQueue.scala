@@ -5,6 +5,8 @@ import chisel3.internal.firrtl.Width
 //import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
 import ooo.Types.EventType._
+import ooo.Types.MicroOp._
+
 import ooo.Configuration
 //import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
@@ -17,6 +19,7 @@ object IssueQueue {
     val Issue = Decoupled(new IssuePackage)
     val IssueReady = Output(Bool())
     val Age = Output(UInt(5.W))
+    val MemQueueFull = Input(Bool())
     val eventBus = Flipped(Valid(new Event))
   }
 
@@ -34,6 +37,8 @@ class IssueQueue()(implicit c: Configuration) extends Module {
     val Issue = Decoupled(new IssuePackage)
 
     val eventBus = Flipped(Valid(new Event))
+
+    val MemQueueFull = Input(Bool())
   })
 
 
@@ -56,6 +61,8 @@ class IssueQueue()(implicit c: Configuration) extends Module {
 
     QueueVec(i).In.valid := false.B
     QueueVec(i).Issue.ready := false.B
+
+    QueueVec(i).MemQueueFull := io.MemQueueFull
   }
 
   // Checks if any positions are available 
@@ -135,7 +142,7 @@ class IssueElement()(implicit c: Configuration) extends Module{
 
     // Branch / Jump kill 
 
-    when(io.Port.eventBus.bits.pr < valueReg.prd && (io.Port.eventBus.bits.eventType === Branch || io.Port.eventBus.bits.eventType === Jump)){
+    when(io.Port.eventBus.bits.pr < valueReg.prd && (io.Port.eventBus.bits.eventType === EventType.Branch || io.Port.eventBus.bits.eventType === EventType.Jump)){
       valueReg.prs(0).ready := false.B
       valueReg.prs(1).ready := false.B
 
@@ -147,7 +154,7 @@ class IssueElement()(implicit c: Configuration) extends Module{
   }
 
 
-  when(valueReg.prs(0).ready && valueReg.prs(1).ready){
+  when(valueReg.prs(0).ready && valueReg.prs(1).ready && !((valueReg.microOp === Load || valueReg.microOp === Store) && io.Port.MemQueueFull)){
     io.Port.IssueReady := true.B
     io.Port.Age := AgeReg
 
@@ -177,3 +184,5 @@ class IssueElement()(implicit c: Configuration) extends Module{
 
 }
 
+
+object issuepenis extends App { emitVerilog(new IssueQueue()(Configuration.random()))}
