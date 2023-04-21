@@ -59,9 +59,9 @@ class Decoder()(implicit c: Configuration) extends Module {
   )
 
   stateArch2Phys.io.write.expand(
-    _.prd := io.retirement.bits.pr,
-    _.rd := io.retirement.bits.rd,
-    _.write := io.retirement.valid
+    _.prd := io.stateUpdate.bits.pr,
+    _.rd := io.stateUpdate.bits.rd,
+    _.write := io.stateUpdate.valid
   )
   io.robPort.allocSetup.expand(
     _.update := !hasToStall,

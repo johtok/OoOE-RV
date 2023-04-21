@@ -38,7 +38,7 @@ class Retirement()(implicit c: Configuration) extends Module {
     _.pushBackHead := misprediction
   )
 
-  io.retirement.expand(
+  io.stateUpdate.expand(
     _.valid := retire,
     _.bits.pr := tail,
     _.bits.rd := io.robPort.rd
