@@ -5,6 +5,7 @@ import chisel3.util.{Decoupled, MuxCase, Valid}
 import ooo.Configuration
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, MicroOp, Opcode, PhysRegisterId}
+import ooo.modules.Retirement.StateUpdate
 import ooo.util.{BundleExpander, LookUp, PairConnector}
 
 
@@ -18,10 +19,7 @@ class Decoder()(implicit c: Configuration) extends Module {
       val physRegisterId = Flipped(new IdAllocator.AllocationPort(c.physRegisterIdWidth))
       val snapshotId = Flipped(new IdAllocator.AllocationPort(c.snapshotIdWidth))
     }
-    val retirement = Flipped(Valid(new Bundle {
-      val pr = PhysRegisterId()
-      val rd = ArchRegisterId()
-    }))
+    val stateUpdate = Flipped(Valid(new StateUpdate))
     val robPort = Flipped(new ReorderBuffer.DecoderPort)
     val eventBus = Flipped(Valid(new Event))
   })

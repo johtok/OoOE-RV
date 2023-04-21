@@ -51,7 +51,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   when(hasWriteBack) { dataMem.write(io.eventBus.bits.pr, io.eventBus.bits.writeBackValue) }
 
-  io.decoderPort.ready := io.decoderPort.prs.map(readyMem.apply(_))
+  io.decoderPort.ready := io.decoderPort.prs.map(pr => RegNext(readyMem(pr)))
 
   val markAsReady = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(CompletionWithValue, Completion, Branch, Jump)
 
@@ -65,7 +65,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   }
 
   io.retirementPort.rd := destMem.read(io.retirementPort.pr)
-  io.retirementPort.ready := readyMem(io.retirementPort.pr)
+  io.retirementPort.ready := RegNext(readyMem(io.retirementPort.pr))
 
 }
 

@@ -4,7 +4,7 @@ package ooo
 import chisel3._
 import ooo.Core.CoreIO
 import ooo.Types.MemPort
-import ooo.modules.{Decoder, Execute, IdAllocator, InstructionStreamer, IssueQueue, ReorderBuffer}
+import ooo.modules.{Decoder, Execute, IdAllocator, InstructionStreamer, IssueQueue, MemQueue, OperandFetch, ReorderBuffer, Retirement}
 import ooo.util.Program
 import ooo.util._
 
@@ -23,39 +23,64 @@ class Core(program: Program, config: Configuration) extends Module {
 
   val io = IO(new CoreIO)
 
-
   val rob = Module(new ReorderBuffer)
 
   object Stage {
     val instrStreamer = Module(new InstructionStreamer(program))
     val decoder = Module(new Decoder)
     val issueQueue = Module(new IssueQueue)
+    val operandFetch = Module(new OperandFetch)
     val exe = Module(new Execute)
+    val retirement = Module(new Retirement)
+    val memQueue = Module(new MemQueue)
   }
+
+  // TODO: connect arbiter to event bus
 
   object Alloc {
     val physRegId = IdAllocator(c.reorderBufferSize)
-    val branchId = IdAllocator(c.numOfSnapshots)
+    val snapshotId = IdAllocator(c.numOfSnapshots)
   }
 
   Stage.instrStreamer.io.expand(
     _.eventBus <> Stage.exe.io.eventBus
   )
-/*
+
   Stage.decoder.io.expand(
     _.instructionStream <> Stage.instrStreamer.io.instructionStream,
-    _.instructionStatus.map(_.ready).zip(rob.io.ready.read.take(2).map(_.isReady)).bulkConnectPairs(),
+    _.robPort <> rob.io.decoderPort,
     _.allocationPorts.expand(
       _.physRegisterId <> Alloc.physRegId.io.alloc,
-      _.branchId <> Alloc.branchId.io.alloc,
-      _.loadId <> Alloc.loadId.io.alloc,
-      _.storeId <> Alloc.storeId.io.alloc
+      _.snapshotId <> Alloc.snapshotId.io.alloc,
     ),
-    _.retirement, // TODO
+    _.stateUpdate <> Stage.retirement.io.stateUpdate,
     _.eventBus <> Stage.exe.io.eventBus
+  )
+
+  Stage.issueQueue.io.expand(
+    _.eventBus
+  )
+
+  Stage.operandFetch.io.expand(
+    _.In <> Stage.issueQueue.io.Issue,
+    _.ROBPort <> rob.io.data
+  )
+
+  Stage.exe.io.expand(
+    _.Instruction <> Stage.operandFetch.io.Issue,
+  )
+
+  Stage.retirement.io.expand(
+    _.eventBus <> Stage.exe.io.eventBus,
+    _.robPort <> rob.io.retirementPort,
+    _.allocPushBack <> Alloc.physRegId.io.pushBack,
+    _.dealloc <> Alloc.physRegId.io.dealloc
+  )
+
+  Stage.memQueue.io.expand(
+
   )
 
 
 
- */
 }
