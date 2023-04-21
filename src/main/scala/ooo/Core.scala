@@ -43,7 +43,7 @@ class Core(program: Program, config: Configuration) extends Module {
   Stage.instrStreamer.io.expand(
     _.eventBus <> Stage.exe.io.eventBus
   )
-
+/*
   Stage.decoder.io.expand(
     _.instructionStream <> Stage.instrStreamer.io.instructionStream,
     _.instructionStatus.map(_.ready).zip(rob.io.ready.read.take(2).map(_.isReady)).bulkConnectPairs(),
@@ -58,4 +58,6 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
 
+
+ */
 }

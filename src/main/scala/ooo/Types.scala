@@ -57,7 +57,7 @@ object Types {
   }
 
   class ReadPort(implicit c: Configuration) extends Bundle{
-    val Address  = Output(Vec(2, new Bundle { val ready = Bool(); val id = PhysRegisterId() }))
+    val Address  = Output(Vec(2, PhysRegisterId()))
     val ReadData = Input(Vec(2,Word()))
   }
 
