@@ -84,11 +84,8 @@ package object util {
 
     def nextPhysRegister()(implicit c: Configuration) = nextUInt(c.physRegisterIdWidth)
 
-    def nextBranchId()(implicit c: Configuration) = nextUInt(c.branchIdWidth)
+    def nextBranchId()(implicit c: Configuration) = nextUInt(c.snapshotIdWidth)
 
-    def nextLoadId()(implicit c: Configuration) = nextUInt(c.loadIdWidth)
-
-    def nextStoreId()(implicit c: Configuration) = nextUInt(c.storeIdWidth)
   }
 
 

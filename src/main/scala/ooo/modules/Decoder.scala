@@ -13,24 +13,16 @@ class Decoder()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val instructionStream = Flipped(Decoupled(new InstructionPackage))
     val issueStream = Decoupled(new IssuePackage)
-    val instructionStatus = Vec(2, new Bundle {
-      val pr = Output(PhysRegisterId())
-      val ready = Input(Bool())
-    })
+
     val allocationPorts = new Bundle {
       val physRegisterId = Flipped(new IdAllocator.AllocationPort(c.physRegisterIdWidth))
-      val branchId = Flipped(new IdAllocator.AllocationPort(c.branchIdWidth))
-      val loadId = Flipped(new IdAllocator.AllocationPort(c.loadIdWidth))
-      val storeId = Flipped(new IdAllocator.AllocationPort(c.storeIdWidth))
+      val snapshotId = Flipped(new IdAllocator.AllocationPort(c.snapshotIdWidth))
     }
     val retirement = Flipped(Valid(new Bundle {
       val pr = PhysRegisterId()
       val rd = ArchRegisterId()
     }))
-    val robDestinations = Valid(new Bundle {
-      val pr = PhysRegisterId()
-      val rd = ArchRegisterId()
-    })
+    val robPort = Flipped(new ReorderBuffer.DecoderPort)
     val eventBus = Flipped(Valid(new Event))
   })
 
@@ -54,16 +46,9 @@ class Decoder()(implicit c: Configuration) extends Module {
     // InstructionType.J -> instruction.immediate.jType -> direct jumps are already handled
   )
 
-
   val hasToStall = WireDefault(0.B)
 
-
-  val isBranch = opcode === Opcode.branch
-  val isJump = opcode === Opcode.jalr
-  val isLoad = opcode === Opcode.load
-  val isStore = opcode === Opcode.store
-  val isImmediate = opcode === Opcode.immediate
-
+  val usesSnapshots = opcode.isOneOf(Opcode.branch, Opcode.jalr)
 
   mapSelector.io.read.rs := rs
   specArch2Phys.io.read.rs := rs
@@ -80,10 +65,10 @@ class Decoder()(implicit c: Configuration) extends Module {
     _.rd := io.retirement.bits.rd,
     _.write := io.retirement.valid
   )
-  io.robDestinations.expand(
-    _.valid := !hasToStall,
-    _.bits.pr := io.allocationPorts.physRegisterId.id,
-    _.bits.rd := rd
+  io.robPort.allocSetup.expand(
+    _.update := !hasToStall,
+    _.prd := io.allocationPorts.physRegisterId.id,
+    _.rd := rd
   )
 
   val prs = mapSelector.io.read.useSpec
@@ -91,16 +76,13 @@ class Decoder()(implicit c: Configuration) extends Module {
     .zip(specArch2Phys.io.read.prs)
     .map { case ((useSpec, state), spec) => Mux(useSpec, spec, state) }
 
-  io.instructionStatus.map(_.pr).zip(prs).connectPairs()
+  io.robPort.prs.zip(prs).connectPairs()
 
   stateArch2Phys.io.allocationCheck.newPid := io.allocationPorts.physRegisterId.id
   val doubleAllocation = stateArch2Phys.io.allocationCheck.isAllocated
 
   io.allocationPorts.physRegisterId.take := Mux(doubleAllocation, 1.B, !hasToStall) // when double allocation we want to take the id no matter what
-  io.allocationPorts.branchId.take := (isBranch || isJump) && !hasToStall
-  io.allocationPorts.loadId.take := isLoad && !hasToStall
-  io.allocationPorts.storeId.take := isStore && !hasToStall
-
+  io.allocationPorts.snapshotId.take := usesSnapshots && !hasToStall
 
 
   hasToStall := MuxCase(0.B, Seq(
@@ -109,20 +91,16 @@ class Decoder()(implicit c: Configuration) extends Module {
     !io.issueStream.ready -> 1.B, // next stage not ready
     !io.allocationPorts.physRegisterId.offer -> 1.B, // no more phys ids to allocate
     doubleAllocation -> 1.B, // the currently available id is already allocated
-    (!io.allocationPorts.branchId.offer && isBranch) -> 1.B,
-    (!io.allocationPorts.loadId.offer && isLoad) -> 1.B,
-    (!io.allocationPorts.storeId.offer && isStore) -> 1.B
+    (!io.allocationPorts.snapshotId.offer && usesSnapshots) -> 1.B,
   ))
 
-
-
   specArch2Phys.io.save.expand(
-    _.branchId := io.allocationPorts.branchId.id,
-    _.takeSnapshot := isBranch && !hasToStall
+    _.snapshotId := io.allocationPorts.snapshotId.id,
+    _.takeSnapshot := usesSnapshots && !hasToStall
   )
 
   specArch2Phys.io.restore.expand(
-    _.branchId := io.eventBus.bits.branchId,
+    _.snapshotId := io.eventBus.bits.snapshotId,
     _.restoreSnapshot := io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(EventType.Branch, EventType.Jump)
   )
 
@@ -132,7 +110,6 @@ class Decoder()(implicit c: Configuration) extends Module {
     _.markAsSpec := !hasToStall
   )
 
-
   val outReg = Reg(chiselTypeOf(io.issueStream.bits))
   val validReg = RegNext(!hasToStall, 0.B)
 
@@ -141,26 +118,24 @@ class Decoder()(implicit c: Configuration) extends Module {
     Opcode.store -> MicroOp.Store,
     Opcode.branch -> MicroOp.Branch,
     Opcode.jal -> MicroOp.Jump,
+    Opcode.jalr -> MicroOp.JumpRegister,
     Opcode.immediate -> MicroOp.Immediate
   )
 
   outReg.prs.map(_.id).zip(prs).connectPairs()
-
 
   outReg.expand(
     _.func := funct7(5) ## funct3,
     _.prd := io.allocationPorts.physRegisterId.id,
     _.immediate := immediate.asUInt,
     _.pc := io.instructionStream.bits.pc,
-    _.branchId := io.allocationPorts.branchId.id,
-    _.branchPrediction := io.instructionStream.bits.branchPrediction,
-    _.loadId := io.allocationPorts.loadId.id,
-    _.storeId := io.allocationPorts.storeId.id
+    _.snapshotId := io.allocationPorts.snapshotId.id,
+    _.branchPrediction := io.instructionStream.bits.branchPrediction
   )
 
   io.instructionStream.ready := !hasToStall
   io.issueStream.bits := outReg
-  io.issueStream.bits.prs.map(_.ready).zip(io.instructionStatus.map(_.ready)).connectPairs() // WARNING: instruction status is assumed to come from sync mem
+  io.issueStream.bits.prs.map(_.ready).zip(io.robPort.ready).connectPairs() // WARNING: instruction status is assumed to come from sync mem
   io.issueStream.valid := validReg
 
 

@@ -11,13 +11,11 @@ object Types {
   object Byte { def apply() = UInt(8.W) }
   object ArchRegisterId { def apply() = UInt(5.W) }
   object PhysRegisterId { def apply()(implicit c: Configuration) = UInt(c.physRegisterIdWidth) }
-  object BranchId { def apply()(implicit c: Configuration) = UInt(c.branchIdWidth) }
-  object LoadId { def apply()(implicit c: Configuration) = UInt(c.memIdWidth) }
-  object StoreId { def apply()(implicit c: Configuration) = UInt(c.storeIdWidth) }
+  object SnapshotId { def apply()(implicit c: Configuration) = UInt(c.snapshotIdWidth) }
 
 
   object MicroOp extends ChiselEnum {
-    val Load, Store, Branch, Jump, Register, Immediate = Value // TODO: more?
+    val Load, Store, Branch, Jump, JumpRegister, Register, Immediate = Value // TODO: more?
   }
 
   object BranchPrediction extends ChiselEnum {
@@ -31,10 +29,8 @@ object Types {
     val prd = PhysRegisterId()
     val immediate = Word()
     val pc = Word()
-    val branchId = BranchId()
+    val snapshotId = SnapshotId()
     val branchPrediction = BranchPrediction()
-    val loadId = LoadId()
-    val storeId = StoreId()
   }
 
   class ExecutePackage(implicit c: Configuration) extends Bundle {
@@ -44,10 +40,8 @@ object Types {
     val prd = PhysRegisterId()
     val immediate = Word()
     val pc = Word()
-    val branchId = BranchId()
+    val snapshotId = SnapshotId()
     val branchPrediction = BranchPrediction()
-    val loadId = LoadId()
-    val storeId = StoreId()
   }
 
   class InstructionPackage extends Bundle {
@@ -75,7 +69,7 @@ object Types {
     val pr = PhysRegisterId()
     val writeBackValue = Word()
     val pc = Word()
-    val branchId = BranchId()
+    val snapshotId = SnapshotId()
   }
 
   class MemPackage(implicit c: Configuration) extends Bundle {

@@ -35,9 +35,7 @@ class Core(program: Program, config: Configuration) extends Module {
 
   object Alloc {
     val physRegId = IdAllocator(c.reorderBufferSize)
-    val branchId = IdAllocator(c.numOfSnapshotBuffers)
-    val loadId = IdAllocator(c.loadQueueSize)
-    val storeId = IdAllocator(c.storeQueueSize)
+    val branchId = IdAllocator(c.numOfSnapshots)
   }
 
   Stage.instrStreamer.io.expand(

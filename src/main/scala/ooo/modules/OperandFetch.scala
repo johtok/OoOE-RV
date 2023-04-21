@@ -27,10 +27,8 @@ class OperandFetch()(implicit c: Configuration) extends Module {
   io.Issue.bits.prd := valueReg.prd
   io.Issue.bits.immediate := valueReg.immediate
   io.Issue.bits.pc := valueReg.pc
-  io.Issue.bits.branchId := valueReg.branchId
+  io.Issue.bits.snapshotId := valueReg.snapshotId
   io.Issue.bits.branchPrediction := valueReg.branchPrediction
-  io.Issue.bits.loadId := valueReg.loadId
-  io.Issue.bits.storeId := valueReg.storeId
 
   io.ROBPort.Address := io.In.bits.prs
 

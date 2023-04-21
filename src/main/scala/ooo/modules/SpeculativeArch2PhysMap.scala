@@ -2,7 +2,7 @@ package ooo.modules
 
 import chisel3._
 import ooo.Configuration
-import ooo.Types.{ArchRegisterId, BranchId, PhysRegisterId}
+import ooo.Types.{ArchRegisterId, PhysRegisterId, SnapshotId}
 
 
 object SpeculativeArch2PhysMap {
@@ -16,17 +16,17 @@ class SpeculativeArch2PhysMap(implicit c: Configuration) extends Module {
 
     val save = Input(new Bundle {
       val takeSnapshot = Bool()
-      val branchId = BranchId()
+      val snapshotId = SnapshotId()
     })
     val restore = Input(new Bundle {
       val restoreSnapshot = Bool()
-      val branchId = BranchId()
+      val snapshotId = SnapshotId()
     })
   })
 
 
   val rf = Reg(Vec(32, PhysRegisterId()))
-  val snapshots = Reg(Vec(c.numOfSnapshotBuffers, Vec(32, PhysRegisterId())))
+  val snapshots = Reg(Vec(c.numOfSnapshots, Vec(32, PhysRegisterId())))
 
   io.read.prs := io.read.rs.map { rs => Mux(
     rs === io.write.rd && io.write.write,
@@ -36,7 +36,7 @@ class SpeculativeArch2PhysMap(implicit c: Configuration) extends Module {
 
   when(io.write.write) { rf(io.write.rd) := io.write.prd }
 
-  when(io.save.takeSnapshot) { snapshots(io.save.branchId) := rf }
-  when(io.restore.restoreSnapshot) { rf := snapshots(io.restore.branchId) }
+  when(io.save.takeSnapshot) { snapshots(io.save.snapshotId) := rf }
+  when(io.restore.restoreSnapshot) { rf := snapshots(io.restore.snapshotId) }
 
 }
