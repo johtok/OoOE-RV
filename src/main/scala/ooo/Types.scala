@@ -67,12 +67,13 @@ object Types {
   }
 
   object EventType extends ChiselEnum {
-    val Writeback, Branch, Jump, Exception = Value
+    val CompletionWithValue, Completion, Branch, Jump, Exception,  = Value
   }
   
   class Event(implicit c: Configuration) extends Bundle {
     val eventType = EventType()
     val pr = PhysRegisterId()
+    val writeBackValue = Word()
     val pc = Word()
     val branchId = BranchId()
   }
