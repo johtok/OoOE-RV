@@ -2,8 +2,8 @@ package ooo.modules
 
 import chisel3._
 import chisel3.internal.firrtl.Width
-import chisel3.util.log2Ceil
-import ooo.modules.IdAllocator.{AllocationPort, DeallocationPort}
+import chisel3.util.{MuxCase, log2Ceil}
+import ooo.modules.IdAllocator.{AllocationPort, DeallocationPort, PushBackPort}
 import ooo.util.BundleExpander
 
 object IdAllocator {
@@ -19,6 +19,23 @@ object IdAllocator {
     val noAllocations = Output(Bool())
     val release = Input(Bool())
   }
+  class PushBackPort(idWidth: Width) extends Bundle {
+    val newHead = Input(UInt(idWidth))
+    val pushBackHead = Input(Bool())
+  }
+  class AllocatorStatePort(idWidth: Width) extends Bundle {
+    val oldest = Output(UInt(idWidth))
+    val youngest = Output(UInt(idWidth))
+    val wrapped = Output(Bool())
+  }
+
+  def shouldBeKilled(id: UInt, cut: UInt, oldest: UInt, youngest: UInt, wrapped: Bool): Bool = {
+    // TODO: verify
+    Mux(!wrapped && cut >= oldest,
+      id > cut || id < youngest,
+      id > cut && id <= youngest
+    )
+  }
 
   def apply(idCount: Int): IdAllocator = Module(new IdAllocator(idCount))
 
@@ -31,6 +48,7 @@ class IdAllocator(idCount: Int) extends Module {
   val io = IO(new Bundle {
     val alloc = new AllocationPort(w)
     val dealloc = new DeallocationPort(w)
+    val pushBack = new PushBackPort(w)
   })
 
   val head = RegInit(Id(), 0.U)
@@ -56,12 +74,19 @@ class IdAllocator(idCount: Int) extends Module {
     when(wrapTail) { wrapBitTail := !wrapBitTail }
   }
 
+  when(io.pushBack.pushBackHead) {
+    head := io.pushBack.newHead
+    when(io.pushBack.newHead >= tail) {
+      wrapHead := wrapTail // TODO: verify
+    }
+  }
+
   io.alloc.expand(
     _.id := head,
-    _.offer := !full
+    _.offer := !full && !io.pushBack.pushBackHead
   )
   io.dealloc.expand(
-    _.noAllocations := empty,
+    _.noAllocations := empty || io.pushBack.pushBackHead,
     _.oldestAllocatedId := tail,
     _.nextOldestAllocatedId := nextTail
   )
