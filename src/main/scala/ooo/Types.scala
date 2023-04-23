@@ -75,8 +75,7 @@ object Types {
   class MemPackage(implicit c: Configuration) extends Bundle {
     val func = Bool() // 0 = read, 1 = write
     val prd = PhysRegisterId()
-    //val immediate = Word()
-    //val operand = Word()
+    
     val Address = Word()
 
     //val storeId = StoreId()
