@@ -6,7 +6,7 @@ import chisel3.internal.firrtl.Width
 import ooo.Types._
 import ooo.Types.EventType._
 
-import ooo.modules.IdAllocator.{DeallocationPort}
+import ooo.modules.IdAllocator.{DeallocationPort,AllocatorStatePort,shouldBeKilled}
 
 import ooo.Configuration
 //import chisel3.util.{Decoupled, MuxCase, Valid}
@@ -34,7 +34,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
     val event = Flipped(Valid(new Event))
 
     val Dealloc = Flipped(new DeallocationPort(c.physRegisterIdWidth))
-
+    val StatePort = Flipped(new AllocatorStatePort(c.physRegisterIdWidth))
 
     val Full = Output(Bool())
   })
@@ -52,6 +52,8 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   io.EventOut.bits := DontCare
   io.EventOut.valid := false.B
+
+  io.Dealloc.release := DontCare
 
   val MemQueue = Reg(Vec(c.memQueueSize, new QueueElementPort()))
 
@@ -78,7 +80,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   // Add kill logic. 
 
-  when(io.Package.valid && !(Kill && io.Package.bits.prd > io.event.bits.pr)){
+  when(io.Package.valid && !shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped)){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
         when(MemQueue(i).empty){
@@ -98,7 +100,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   when(Kill){
     for(i <- 0 until c.memQueueSize){
-      when(MemQueue(i).In.prd > io.event.bits.pr){
+      when(shouldBeKilled(MemQueue(i).In.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped)){
         MemQueue(i).empty := true.B
       }
     }
