@@ -12,6 +12,8 @@ import ooo.Configuration
 import chisel3.util._
 import ooo.modules.IssueQueue.{ ElementPort}
 import ooo.util.BundleExpander
+import ooo.modules.IdAllocator.{DeallocationPort,AllocatorStatePort,shouldBeKilled}
+
 
 object IssueQueue {
   class ElementPort(implicit c: Configuration) extends Bundle{
@@ -20,7 +22,8 @@ object IssueQueue {
     val IssueReady = Output(Bool())
     val Age = Output(UInt(5.W))
     val MemQueueFull = Input(Bool())
-    val eventBus = Flipped(Valid(new Event))
+    val event = Flipped(Valid(new Event))
+    val StatePort = Flipped(new AllocatorStatePort(c.physRegisterIdWidth))
   }
 
   def apply(tagCount: Int): IdAllocator = Module(new IdAllocator(tagCount))
@@ -36,14 +39,20 @@ class IssueQueue()(implicit c: Configuration) extends Module {
     val Alloc = Flipped(Decoupled(new IssuePackage))
     val Issue = Decoupled(new IssuePackage)
 
-    val eventBus = Flipped(Valid(new Event))
+    val event = Flipped(Valid(new Event))
 
     val MemQueueFull = Input(Bool())
+
+    val Dealloc = Flipped(new DeallocationPort(c.physRegisterIdWidth))
+    val StatePort = Flipped(new AllocatorStatePort(c.physRegisterIdWidth))
+
   })
 
 
   io.Issue.valid := false.B
   io.Alloc.ready := false.B
+
+  io.Dealloc.release := DontCare
 
   // Instansiate issue queue
 
@@ -54,13 +63,15 @@ class IssueQueue()(implicit c: Configuration) extends Module {
 
     QueueVec(i) <> Element.io.Port
 
-    QueueVec(i).eventBus <> io.eventBus
+    QueueVec(i).event <> io.event
 
     QueueVec(i).In.bits <> io.Alloc.bits
     QueueVec(i).Issue.bits <> io.Issue.bits
 
     QueueVec(i).In.valid := false.B
     QueueVec(i).Issue.ready := false.B
+
+    QueueVec(i).StatePort <> io.StatePort
 
     QueueVec(i).MemQueueFull := io.MemQueueFull
   }
@@ -94,7 +105,7 @@ class IssueQueue()(implicit c: Configuration) extends Module {
     }
   } 
 
-  
+
 
   val AgeVec = VecInit(Seq.tabulate(positions)(n => QueueVec(n).Age))
 
@@ -131,18 +142,18 @@ class IssueElement()(implicit c: Configuration) extends Module{
   val emptyReg = RegInit(1.B)
   val AgeReg = RegInit(0.U(8.W))
 
-  when(io.Port.eventBus.valid && !emptyReg){
-    when(io.Port.eventBus.bits.pr === valueReg.prs(0).id){
+  when(io.Port.event.valid && !emptyReg){
+    when(io.Port.event.bits.pr === valueReg.prs(0).id){
       valueReg.prs(0).ready := true.B
     }
 
-    when(io.Port.eventBus.bits.pr === valueReg.prs(1).id){
+    when(io.Port.event.bits.pr === valueReg.prs(1).id){
       valueReg.prs(1).ready := true.B
     }
 
-    // Branch / Jump kill 
+    // Branch / Jump kill eventBus
 
-    when(io.Port.eventBus.bits.pr < valueReg.prd && (io.Port.eventBus.bits.eventType === EventType.Branch || io.Port.eventBus.bits.eventType === EventType.Jump)){
+    when(shouldBeKilled(valueReg.prd, io.Port.event.bits.pr, io.Port.StatePort.oldest, io.Port.StatePort.youngest, io.Port.StatePort.wrapped)){
       valueReg.prs(0).ready := false.B
       valueReg.prs(1).ready := false.B
 

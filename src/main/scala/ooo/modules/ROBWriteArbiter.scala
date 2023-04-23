@@ -22,7 +22,7 @@ class ROBWriteArbiter()(implicit c: Configuration) extends Module {
   io.Write.valid := false.B
 
   io.event.bits.pc := 0.U
-  io.event.bits.eventType := Writeback  
+  //io.event.bits.eventType := Writeback  
   io.event.valid := false.B
 
   io.Write.bits := io.LoadWrite.bits
