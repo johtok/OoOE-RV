@@ -31,3 +31,6 @@ firrtl_black_box_resource_files.f
 .metals/metals.lock.db
 .metals/metals.mv.db
 .vscode/settings.json
+/synth/**/*
+!/synth/**/Makefile
+!/synth/**/pins.tcl
