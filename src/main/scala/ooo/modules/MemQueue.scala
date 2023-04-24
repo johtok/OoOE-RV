@@ -26,7 +26,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val Package = Flipped(Decoupled(new MemPackage))
     //val Write = Decoupled(new WritePort)
-    val EventOut = Decoupled(new Event)
+    val EventOut = Valid(new Event)
     val MemPort = Decoupled(new MemPort)
     val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
     //val Retire = Flipped(Decoupled(PhysRegisterId()))
@@ -146,7 +146,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   when(ReadData.Expect){
     //when(io.MemPort.bits.ReadData.valid && io.Write.ready){
     //when(io.MemPort.bits.ReadData.ReadData.valid && io.Write.ready){
-    when(io.MemPortReadData.valid && io.EventOut.ready){
+    when(io.MemPortReadData.valid){
 
       /*
 

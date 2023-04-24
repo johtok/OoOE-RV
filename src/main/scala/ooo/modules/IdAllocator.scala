@@ -61,8 +61,15 @@ class IdAllocator(idCount: Int) extends Module {
   val full = collision && wrapBitHead =/= wrapBitTail
   val empty = collision && wrapBitHead === wrapBitTail
 
-  val wrapHead = head === (idCount - 1).U
-  val wrapTail = tail === (idCount - 1).U
+  //val wrapHead = head === (idCount - 1).U
+  //val wrapTail = tail === (idCount - 1).U
+
+  val wrapHead = Wire(Bool())
+  val wrapTail = Wire(Bool())
+
+  wrapHead := head === (idCount - 1).U
+  wrapTail := tail === (idCount - 1).U
+
   val nextHead = Mux(wrapHead, 0.U, head + 1.U)
   val nextTail = Mux(wrapTail, 0.U, tail + 1.U)
 

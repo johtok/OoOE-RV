@@ -10,7 +10,7 @@ import ooo.util.BundleExpander
 class Execute()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val Instruction = Flipped(Decoupled(new ExecutePackage))
-    val eventBus = Valid(new Event)
+    val eventBus = Decoupled(new Event)
   })
 
   io.elements.foreach(_._2 := DontCare)
