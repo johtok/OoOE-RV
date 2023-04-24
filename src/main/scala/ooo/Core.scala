@@ -4,7 +4,7 @@ package ooo
 import chisel3._
 import ooo.Core.CoreIO
 import ooo.Types.MemPort
-import ooo.modules.{Decoder, Execute, IdAllocator, InstructionStreamer, IssueQueue, MemQueue, OperandFetch, ReorderBuffer, Retirement}
+import ooo.modules.{Decoder, Execute, IdAllocator, InstructionStreamer, IssueQueue, MemQueue, OperandFetch, ReorderBuffer, Retirement, EventArbiter}
 import ooo.util.Program
 import ooo.util._
 
@@ -33,6 +33,7 @@ class Core(program: Program, config: Configuration) extends Module {
     val exe = Module(new Execute)
     val retirement = Module(new Retirement)
     val memQueue = Module(new MemQueue)
+    val eventArbiter = Module(new EventArbiter)
   }
 
   // TODO: connect arbiter to event bus
@@ -43,7 +44,7 @@ class Core(program: Program, config: Configuration) extends Module {
   }
 
   Stage.instrStreamer.io.expand(
-    _.eventBus <> Stage.exe.io.eventBus
+    _.eventBus <> Stage.eventArbiter.io.EventOut
   )
 
   Stage.decoder.io.expand(
@@ -54,11 +55,13 @@ class Core(program: Program, config: Configuration) extends Module {
       _.snapshotId <> Alloc.snapshotId.io.alloc,
     ),
     _.stateUpdate <> Stage.retirement.io.stateUpdate,
-    _.eventBus <> Stage.exe.io.eventBus
+    _.eventBus <> Stage.eventArbiter.io.EventOut
   )
 
   Stage.issueQueue.io.expand(
-    _.eventBus
+    _.event <>  Stage.eventArbiter.io.EventOut,
+    _.Dealloc <> Alloc.physRegId.io.dealloc,
+    _.StatePort <> Stage.retirement.io.stateUpdate
   )
 
   Stage.operandFetch.io.expand(
@@ -71,15 +74,24 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   Stage.retirement.io.expand(
-    _.eventBus <> Stage.exe.io.eventBus,
+    _.eventBus <> Stage.eventArbiter.io.EventOut,
     _.robPort <> rob.io.retirementPort,
     _.allocPushBack <> Alloc.physRegId.io.pushBack,
     _.dealloc <> Alloc.physRegId.io.dealloc
   )
 
   Stage.memQueue.io.expand(
-
+    _.Dealloc <> Alloc.physRegId.io.dealloc,
+    _.StatePort <> Stage.retirement.io.stateUpdate
   )
+
+  Stage.eventArbiter.io.expand(
+    _.MemIn <> Stage.memQueue.io.EventOut,
+    _.ExecuteIn <> Stage.exe.io.eventBus,
+  )
+
+
+  
 
 
 

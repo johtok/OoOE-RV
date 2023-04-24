@@ -30,8 +30,13 @@ class OperandFetch()(implicit c: Configuration) extends Module {
   io.Issue.bits.snapshotId := valueReg.snapshotId
   io.Issue.bits.branchPrediction := valueReg.branchPrediction
 
-  io.ROBPort.Address := io.In.bits.prs
 
+
+  //io.ROBPort.Address := io.In.bits.prs.id
+
+  io.ROBPort.Address := VecInit(Seq.tabulate(2)(n => io.In.bits.prs(n).id))
+
+  
   when(io.In.valid){
     valueReg := io.In.bits
     delayReg := true.B
