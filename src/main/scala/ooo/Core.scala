@@ -36,8 +36,6 @@ class Core(program: Program, config: Configuration) extends Module {
     val eventArbiter = Module(new EventArbiter)
   }
 
-  // TODO: connect arbiter to event bus
-
   object Alloc {
     val physRegId = IdAllocator(c.reorderBufferSize)
     val snapshotId = IdAllocator(c.numOfSnapshots)
@@ -83,7 +81,6 @@ class Core(program: Program, config: Configuration) extends Module {
 
   Stage.memQueue.io.expand(
     _.Dealloc <> Alloc.physRegId.io.dealloc,
-    //_.StatePort <> Stage.retirement.io.stateUpdate
     _.StatePort <> Alloc.physRegId.io.state
   )
 
@@ -92,9 +89,6 @@ class Core(program: Program, config: Configuration) extends Module {
     _.ExecuteIn <> Stage.exe.io.eventBus,
   )
 
-
   io.mem <> Stage.memQueue.io.MemPort
-
-
 
 }
