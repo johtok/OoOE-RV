@@ -14,3 +14,7 @@ firrtl_black_box_resource_files.f
 /synth/**/*
 !/synth/**/Makefile
 !/synth/**/pins.tcl
+.scalafmt.conf
+/.bloop
+/.metals
+/.vscode
