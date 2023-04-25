@@ -61,7 +61,8 @@ class Core(program: Program, config: Configuration) extends Module {
     _.event <> Stage.eventArbiter.io.EventOut,
     _.Dealloc <> Alloc.physRegId.io.dealloc,
     //_.StatePort <> Stage.retirement.io.stateUpdate
-    _.StatePort <> Alloc.physRegId.io.state
+    _.StatePort <> Alloc.physRegId.io.state,
+    _.MemQueueFull <> Stage.memQueue.io.Full
   )
 
   Stage.operandFetch.io.expand(
@@ -93,5 +94,7 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   io.mem <> Stage.memQueue.io.MemPort
+
+  rob.io.eventBus <> Stage.eventArbiter.io.EventOut
 
 }

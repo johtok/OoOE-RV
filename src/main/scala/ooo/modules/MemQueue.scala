@@ -28,7 +28,6 @@ class MemQueue()(implicit c: Configuration) extends Module {
     //val Write = Decoupled(new WritePort)
     val EventOut = Valid(new Event)
     val MemPort = new MemPort
-    val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
     //val Retire = Flipped(Decoupled(PhysRegisterId()))
 
     val event = Flipped(Valid(new Event))
@@ -156,7 +155,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
       */
 
       io.EventOut.bits.pr := ReadData.id
-      io.EventOut.bits.writeBackValue := io.MemPortReadData.bits 
+      io.EventOut.bits.writeBackValue := io.MemPort.response.bits.readData
       io.EventOut.valid := true.B
 
       io.EventOut.bits.eventType := CompletionWithValue
