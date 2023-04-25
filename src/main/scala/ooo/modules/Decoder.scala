@@ -111,18 +111,10 @@ class Decoder()(implicit c: Configuration) extends Module {
   val outReg = Reg(chiselTypeOf(io.issueStream.bits))
   val validReg = RegNext(!hasToStall, 0.B)
 
-  outReg.microOp := LookUp(opcode, MicroOp.Register,
-    Opcode.load -> MicroOp.Load,
-    Opcode.store -> MicroOp.Store,
-    Opcode.branch -> MicroOp.Branch,
-    Opcode.jal -> MicroOp.Jump,
-    Opcode.jalr -> MicroOp.JumpRegister,
-    Opcode.immediate -> MicroOp.Immediate
-  )
-
   outReg.prs.map(_.id).zip(prs).connectPairs()
 
   outReg.expand(
+    _.opcode := opcode,
     _.func := funct7(5) ## funct3,
     _.prd := io.allocationPorts.physRegisterId.id,
     _.immediate := immediate.asUInt,

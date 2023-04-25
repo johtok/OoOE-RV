@@ -18,6 +18,7 @@ class Retirement()(implicit c: Configuration) extends Module {
 
   val io = IO(new Bundle {
     val dealloc = Flipped(new IdAllocator.DeallocationPort(c.physRegisterIdWidth))
+    val snapDealloc = Flipped(new IdAllocator.DeallocationPort(c.snapshotIdWidth))
     val allocPushBack = Flipped(new IdAllocator.PushBackPort(c.physRegisterIdWidth))
     val stateUpdate = Valid(new StateUpdate)
     val robPort = Flipped(new ReorderBuffer.RetirementPort)
@@ -31,12 +32,16 @@ class Retirement()(implicit c: Configuration) extends Module {
 
   val retire = !io.dealloc.noAllocations && io.robPort.ready && !io.eventBus.valid
 
-  val misprediction = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(EventType.Branch, EventType.Jump)
+  val branch = io.eventBus.bits.eventType === EventType.Branch
+  val jump = io.eventBus.bits.eventType === EventType.Jump
+  val shouldJump = io.eventBus.valid && ((branch && io.eventBus.bits.misprediction) || jump)
 
   io.allocPushBack.expand(
     _.newHead := io.eventBus.bits.pr,
-    _.pushBackHead := misprediction
+    _.pushBackHead := shouldJump
   )
+
+  io.snapDealloc.release := branch
 
   io.dealloc.release := retire
 

@@ -23,7 +23,7 @@ object Types {
   }
 
   class IssuePackage(implicit c: Configuration) extends Bundle {
-    val microOp = MicroOp()
+    val opcode = Opcode()
     val func = UInt(4.W)
     val prs = Vec(2, new Bundle { val ready = Bool(); val id = PhysRegisterId() })
     val prd = PhysRegisterId()
@@ -34,7 +34,7 @@ object Types {
   }
 
   class ExecutePackage(implicit c: Configuration) extends Bundle {
-    val microOp = MicroOp()
+    val opcode = Opcode()
     val func = UInt(4.W)
     val operands = Vec(2, Word())
     val prd = PhysRegisterId()
@@ -70,6 +70,7 @@ object Types {
     val writeBackValue = Word()
     val pc = Word()
     val snapshotId = SnapshotId()
+    val misprediction = Bool()
   }
 
   class MemPackage(implicit c: Configuration) extends Bundle {
