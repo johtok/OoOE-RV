@@ -59,7 +59,8 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   Stage.issueQueue.io.expand(
-    _.event <>  Stage.eventArbiter.io.EventOut,
+    _.Alloc <> Stage.decoder.io.issueStream,
+    _.event <> Stage.eventArbiter.io.EventOut,
     _.Dealloc <> Alloc.physRegId.io.dealloc,
     //_.StatePort <> Stage.retirement.io.stateUpdate
     _.StatePort <> Alloc.physRegId.io.state
@@ -82,6 +83,7 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   Stage.memQueue.io.expand(
+    _.event <> Stage.eventArbiter.io.EventOut,
     _.Dealloc <> Alloc.physRegId.io.dealloc,
     //_.StatePort <> Stage.retirement.io.stateUpdate
     _.StatePort <> Alloc.physRegId.io.state
