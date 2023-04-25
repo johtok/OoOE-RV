@@ -30,9 +30,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
     val MemPort = Decoupled(new MemPort)
     val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
     //val Retire = Flipped(Decoupled(PhysRegisterId()))
-
-    val event = Flipped(Valid(new Event))
-
+    
     val Dealloc = Flipped(new DeallocationPort(c.physRegisterIdWidth))
     val StatePort = Flipped(new AllocatorStatePort(c.physRegisterIdWidth))
 
