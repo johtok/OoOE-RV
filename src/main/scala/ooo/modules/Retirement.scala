@@ -38,6 +38,8 @@ class Retirement()(implicit c: Configuration) extends Module {
     _.pushBackHead := misprediction
   )
 
+  io.dealloc.release := retire
+
   io.stateUpdate.expand(
     _.valid := retire,
     _.bits.pr := tail,

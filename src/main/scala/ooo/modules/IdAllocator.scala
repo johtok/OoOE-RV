@@ -98,5 +98,10 @@ class IdAllocator(idCount: Int) extends Module {
     _.oldestAllocatedId := tail,
     _.nextOldestAllocatedId := nextTail
   )
+  io.state.expand(
+    _.youngest := head,
+    _.oldest := tail,
+    _.wrapped := wrapBitTail =/= wrapBitHead
+  )
 
 }
