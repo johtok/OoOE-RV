@@ -27,7 +27,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
     val Package = Flipped(Decoupled(new MemPackage))
     //val Write = Decoupled(new WritePort)
     val EventOut = Valid(new Event)
-    val MemPort = Decoupled(new MemPort)
+    val MemPort = new MemPort
     val MemPortReadData = Flipped(Valid(Word())) // I tried making this a part of the MemPort but it didnt work
     //val Retire = Flipped(Decoupled(PhysRegisterId()))
 
@@ -41,14 +41,12 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   val Fullsize = log2Ceil(c.memQueueSize) - 2
 
-  io.MemPort.valid := false.B
-  io.MemPort.bits.WriteEn := false.B
-
   //io.Retire.ready := io.MemPort.ready
 
-  io.MemPort.bits.Address := 0.U
-  io.MemPort.bits.WriteData := 0.U
-  io.MemPort.bits.WriteEn := false.B
+  io.MemPort.request.bits := DontCare
+
+  io.MemPort.request.valid := false.B
+  io.MemPort.response.ready := false.B
 
   io.EventOut.bits := DontCare
   io.EventOut.valid := false.B
@@ -113,47 +111,48 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   val ReadData = Reg(new Bundle { val Expect = Bool(); val id = PhysRegisterId() })
 
-  when(io.MemPort.ready){
+  when(io.MemPort.request.ready){
     //io.Retire.ready := true.B
 
     when(io.Dealloc.noAllocations){
       for(i <- 0 until c.memQueueSize){
         when(MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId){
-          io.MemPort.valid := true.B
+          io.MemPort.request.valid := true.B
 
-          io.MemPort.bits.Address := MemQueue(i).In.Address
-          io.MemPort.bits.WriteData := MemQueue(i).In.prd
+          io.MemPort.request.bits.Address := MemQueue(i).In.Address
+          io.MemPort.request.bits.WriteData := MemQueue(i).In.prd
 
-          when(MemQueue(i).In.func){ // Write
-            io.MemPort.bits.WriteEn := true.B
+          when(io.MemPort.request.ready){
+            when(MemQueue(i).In.func){ // Write
+              io.MemPort.request.bits.isWrite := true.B
 
-            io.EventOut.valid := true.B
-            io.EventOut.bits.eventType := CompletionWithValue
+              io.EventOut.valid := true.B
+              io.EventOut.bits.eventType := CompletionWithValue
 
-          }.otherwise{ // Read
-            io.MemPort.bits.WriteEn := false.B
-            ReadData.Expect := true.B // Indicates that the system should expect readdata soon
-            ReadData.id := MemQueue(i).In.prd
+            }.otherwise{ // Read
+              io.MemPort.request.bits.isWrite := false.B
+              ReadData.Expect := true.B // Indicates that the system should expect readdata soon
+              ReadData.id := MemQueue(i).In.prd
+            }
+
+            MemQueue(i).empty := true.B
           }
-
-          MemQueue(i).empty := true.B
-
         }
       }
     }    
   }
 
   when(ReadData.Expect){
+
+    io.MemPort.response.ready := true.B
     //when(io.MemPort.bits.ReadData.valid && io.Write.ready){
     //when(io.MemPort.bits.ReadData.ReadData.valid && io.Write.ready){
-    when(io.MemPortReadData.valid){
+    when(io.MemPort.response.valid){
 
       /*
-
       io.Write.bits.Address := ReadData.id
       io.Write.bits.WriteData := io.MemPortReadData.bits 
       io.Write.valid := true.B
-
       */
 
       io.EventOut.bits.pr := ReadData.id
