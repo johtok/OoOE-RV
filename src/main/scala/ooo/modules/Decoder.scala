@@ -113,6 +113,9 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   outReg.prs.map(_.id).zip(prs).connectPairs()
 
+  outReg.prs(0).ready := Mux(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 1.B, !mapSelector.io.read.useSpec(0) || (mapSelector.io.read.useSpec(0) && io.robPort.ready(0)))
+  outReg.prs(1).ready := Mux(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 1.B, !mapSelector.io.read.useSpec(1) || (mapSelector.io.read.useSpec(1) && io.robPort.ready(1)))
+
   outReg.expand(
     _.opcode := opcode,
     _.func := funct7(5) ## funct3,
@@ -123,12 +126,9 @@ class Decoder()(implicit c: Configuration) extends Module {
     _.branchPrediction := io.instructionStream.bits.branchPrediction
   )
 
-  io.instructionStream.ready := !hasToStall
   io.issueStream.bits := outReg
-  io.issueStream.bits.prs.map(_.ready).zip(io.robPort.ready).connectPairs() // WARNING: instruction status is assumed to come from sync mem
+  io.instructionStream.ready := !(hasToStall && !io.instructionStream.valid)
   io.issueStream.valid := validReg
-
-
 }
 
 object Decoder extends App {

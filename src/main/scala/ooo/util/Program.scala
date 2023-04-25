@@ -31,10 +31,10 @@ object Program {
   def load(fileNames: Seq[String]): Seq[Program] = fileNames.map(load)
   def load(fileName: String, fileNames: String*): Seq[Program] = load(fileName +: fileNames)
 
-  private def getFiles(dir: String): Seq[String] = {
+  def getBinFiles(dir: String): Seq[String] = {
     val d = new File(dir)
     if (d.exists && d.isDirectory) {
-      d.listFiles.filter(_.isFile).map(_.getName).toSeq
+      d.listFiles.filter(f => f.isFile && f.getName.endsWith(".bin")).map(_.getName).toSeq
     } else {
       Seq()
     }

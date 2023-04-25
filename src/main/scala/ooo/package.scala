@@ -35,7 +35,7 @@ package object ooo {
         16,
         8,
         8,
-        Seq.range(0,32)
+        Seq.range(10,42)
       )
     }
   }

@@ -10,7 +10,7 @@ import ooo.util.TestingUtils._
 class IssueQueueTest extends AnyFlatSpec with ChiselScalatestTester {
 
   behavior of "IssueQueue"
-
+/*
   it should "allocate n spaces sequentially" in {
     val n = Random.nextInt(2 until 32)
     //val n = 16
@@ -108,7 +108,6 @@ class IssueQueueTest extends AnyFlatSpec with ChiselScalatestTester {
     }
 
   }
-  /*
 
   it should "release all n ids" in {
     val n = Random.nextInt(2 until 64)

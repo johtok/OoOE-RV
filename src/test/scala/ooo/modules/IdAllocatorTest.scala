@@ -6,6 +6,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 
 import scala.util.Random
 import ooo.util.TestingUtils._
+import ooo.util._
 
 class IdAllocatorTest extends AnyFlatSpec with ChiselScalatestTester {
 

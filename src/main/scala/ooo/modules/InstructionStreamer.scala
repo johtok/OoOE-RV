@@ -23,9 +23,10 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   val pc = RegInit(Word(), 0.U)
   val nextPc = Wire(Word())
   pc := nextPc
-  val rom = VecInit(pc)
+  val rom = VecInit(program.getWords)
+  val programEnd = pc(31,2) === program.getWords.length.U
 
-  val instruction = rom(pc)
+  val instruction = rom(pc(31,2))
 
   val opcode = instruction.opcode
   val isBranch = opcode === Opcode.branch
@@ -36,12 +37,13 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   val prediction = Mux(imm.sign, BranchPrediction.Taken, BranchPrediction.NotTaken)
 
   nextPc := MuxCase(pc + 4.U, Seq(
+    programEnd -> pc,
     io.eventBus.valid -> io.eventBus.bits.pc,
-    !io.instructionStream.ready -> pc,
+    (!RegNext(io.instructionStream.ready, 1.B) && !io.instructionStream.ready) -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))
 
-  io.instructionStream.valid := 1.B
+  io.instructionStream.valid := RegNext(!io.eventBus.valid && !programEnd, 0.B)
   io.instructionStream.bits := Reg(new InstructionPackage).expand(
     _.instruction := instruction,
     _.pc := pc,

@@ -22,11 +22,7 @@ class StateArch2PhysMap(implicit c: Configuration) extends Module {
 
   val rf = RegInit(Vec(32, PhysRegisterId()), c.initialStateMap.map(_.U).toVec)
 
-  io.read.prs := io.read.rs.map { rs => Mux(
-    rs === io.write.rd && io.write.write,
-    io.write.prd,
-    rf(rs)
-  ) }
+  io.read.prs := io.read.rs.map(rf(_))
 
   when(io.write.write) { rf(io.write.rd) := io.write.prd }
 

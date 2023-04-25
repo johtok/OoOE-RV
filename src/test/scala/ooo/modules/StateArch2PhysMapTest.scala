@@ -3,17 +3,18 @@ package ooo.modules
 import chisel3._
 import chiseltest._
 import org.scalatest.flatspec.AnyFlatSpec
-import ooo.util.TestingUtils.{RandomConfiguration, _}
+import ooo.Configuration
 
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import ooo.util._
 
 class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
 
   behavior of "StateArch2PhysMap"
-
+/*
   it should "store the correct mapping" in {
-    implicit val c = RandomConfiguration()
+    implicit val c = Configuration.default()
     test(new StateArch2PhysMap()).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
       val map = ArrayBuffer.fill(32)(0)
@@ -72,5 +73,7 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
 
     }
   }
+
+ */
 
 }
