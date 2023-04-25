@@ -100,14 +100,14 @@ object Types {
 
 
   class MemPort(implicit c: Configuration) extends Bundle{
-    val Address = Output(Word())
-    val WriteData = Output(Word())
-    val WriteEn = Output(Bool())
-
-    //val ReadData = Flipped(new StupidBundle)
-    //val ReadData = Input(Valid(Word()))
-    //val ReadData = Valid(bo)
-
+    val request = Decoupled(new Bundle {
+      val Address = Word()
+      val WriteData = Word()
+      val isWrite = Bool()
+    })
+    val response = Flipped(Decoupled(new Bundle {
+      val readData = Word()
+    }))
   }
 
   object InstructionType extends ChiselEnum {

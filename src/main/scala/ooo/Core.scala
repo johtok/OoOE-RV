@@ -93,7 +93,7 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
 
-  
+  io.mem <> Stage.memQueue.io.MemPort
 
 
 
