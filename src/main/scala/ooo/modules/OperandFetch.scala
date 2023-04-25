@@ -21,7 +21,7 @@ class OperandFetch()(implicit c: Configuration) extends Module {
   val valueReg = Reg(new IssuePackage())
   val delayReg = RegInit(0.B)
 
-  io.Issue.bits.microOp := valueReg.microOp
+  io.Issue.bits.opcode := valueReg.opcode
   io.Issue.bits.func := valueReg.func
   io.Issue.bits.operands := io.ROBPort.ReadData 
   io.Issue.bits.prd := valueReg.prd

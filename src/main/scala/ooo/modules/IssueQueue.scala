@@ -165,7 +165,7 @@ class IssueElement()(implicit c: Configuration) extends Module{
   }
 
 
-  when(valueReg.prs(0).ready && valueReg.prs(1).ready && !((valueReg.microOp === Load || valueReg.microOp === Store) && io.Port.MemQueueFull)){
+  when(valueReg.prs(0).ready && valueReg.prs(1).ready && !((valueReg.opcode === Opcode.load || valueReg.opcode === Opcode.store) && io.Port.MemQueueFull)){
     io.Port.IssueReady := true.B
     io.Port.Age := AgeReg
 

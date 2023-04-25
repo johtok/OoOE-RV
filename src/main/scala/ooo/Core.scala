@@ -78,7 +78,8 @@ class Core(program: Program, config: Configuration) extends Module {
     _.eventBus <> Stage.eventArbiter.io.EventOut,
     _.robPort <> rob.io.retirementPort,
     _.allocPushBack <> Alloc.physRegId.io.pushBack,
-    _.dealloc <> Alloc.physRegId.io.dealloc
+    _.dealloc <> Alloc.physRegId.io.dealloc,
+    _.snapDealloc <> Alloc.snapshotId.io.dealloc
   )
 
   Stage.memQueue.io.expand(
@@ -96,5 +97,10 @@ class Core(program: Program, config: Configuration) extends Module {
   io.mem <> Stage.memQueue.io.MemPort
 
   rob.io.eventBus <> Stage.eventArbiter.io.EventOut
+
+  Alloc.snapshotId.io.pushBack.expand(
+    _.pushBackHead := 0.B,
+    _.newHead := 0.U
+  )
 
 }

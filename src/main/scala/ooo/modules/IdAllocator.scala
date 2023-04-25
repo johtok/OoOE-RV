@@ -94,7 +94,7 @@ class IdAllocator(idCount: Int) extends Module {
     _.offer := !full && !io.pushBack.pushBackHead
   )
   io.dealloc.expand(
-    _.noAllocations := empty || io.pushBack.pushBackHead,
+    _.noAllocations := empty,
     _.oldestAllocatedId := tail,
     _.nextOldestAllocatedId := nextTail
   )
