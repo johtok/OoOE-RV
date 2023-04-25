@@ -11,9 +11,11 @@ class Execute()(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val Instruction = Flipped(Decoupled(new ExecutePackage))
     val eventBus = Decoupled(new Event)
+    val MemPackage = Decoupled(new MemPackage)
   })
 
   io.elements.foreach(_._2 := DontCare)
+  
 
 }
 
