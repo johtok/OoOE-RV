@@ -83,6 +83,7 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   Stage.memQueue.io.expand(
+    _.Package <> Stage.exe.io.MemPackage,
     _.event <> Stage.eventArbiter.io.EventOut,
     _.Dealloc <> Alloc.physRegId.io.dealloc,
     //_.StatePort <> Stage.retirement.io.stateUpdate
