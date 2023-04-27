@@ -13,11 +13,6 @@ object Types {
   object PhysRegisterId { def apply()(implicit c: Configuration) = UInt(c.physRegisterIdWidth) }
   object SnapshotId { def apply()(implicit c: Configuration) = UInt(c.snapshotIdWidth) }
 
-
-  object MicroOp extends ChiselEnum {
-    val Load, Store, Branch, Jump, JumpRegister, Register, Immediate = Value // TODO: more?
-  }
-
   object BranchPrediction extends ChiselEnum {
     val NotTaken, Taken = Value
   }

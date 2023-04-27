@@ -4,7 +4,7 @@ import chisel3._
 import chisel3.util.{Decoupled, MuxCase, Valid}
 import ooo.Configuration
 import ooo.Types.Immediate.InstructionFieldExtractor
-import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, MicroOp, Opcode, PhysRegisterId}
+import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
 import ooo.modules.Retirement.StateUpdate
 import ooo.util.{BundleExpander, LookUp, PairConnector}
 
