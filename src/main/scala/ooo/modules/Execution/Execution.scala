@@ -52,7 +52,7 @@ class Execution(val XLEN: Int) extends Module {
   // vals
 
   // modules
-  val FU_ALU = Module(new ALU(XLEN))
+  val FU_ALU = Module(new ALU)
   val InstructionDecoder = Module(new InstructionDecoder(XLEN,INSTRLEN, DTAGLEN, TAGLEN))
 
   // Connect modules
