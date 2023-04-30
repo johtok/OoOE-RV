@@ -25,7 +25,7 @@ object Program {
   def load(fileName: String): Program = {
     Program(
       fileName,
-      Files.readAllBytes(Paths.get(fileName)).map(_ & 0xFF)
+      Files.readAllBytes(Paths.get(fileName)).toIndexedSeq.map(_ & 0xFF)
     )
   }
   def load(fileNames: Seq[String]): Seq[Program] = fileNames.map(load)

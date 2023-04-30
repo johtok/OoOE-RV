@@ -1,10 +1,10 @@
 package ooo.modules
 
 import chisel3._
-import chisel3.internal.firrtl.Width
 import ooo.Types._
 import ooo.Configuration
 import chisel3.util._
+import ooo.Types.EventType._
 import ooo.modules.Execution.ALU
 import ooo.util.{BundleExpander, LookUp}
 
@@ -31,7 +31,9 @@ class Execute()(implicit c: Configuration) extends Module {
   // comp indicates whether branch condition was true
   val (res, comp) = ALU(func)(a, b)
 
-  io.MemPackage.valid := io.Instruction.valid && opcode.isOneOf(Opcode.load, Opcode.store)
+  val sendToMemQueue = opcode.isOneOf(Opcode.load, Opcode.store)
+
+  io.MemPackage.valid := io.Instruction.valid && sendToMemQueue
   io.MemPackage.bits.expand(
     _.isWrite := opcode === Opcode.store,
     _.func := func(2, 0),
@@ -39,13 +41,23 @@ class Execute()(implicit c: Configuration) extends Module {
     _.Address := res
   )
 
+  val eventType = MuxCase(CompletionWithValue, Seq(
+    (opcode === Opcode.branch) -> Branch,
+    (opcode === Opcode.jalr) -> Jump
+  ))
+
   io.eventBus.bits.elements.foreach(_._2 := DontCare)
-  io.eventBus.valid := 0.B // TODO
+  io.eventBus.valid := io.Instruction.valid && !sendToMemQueue
   io.eventBus.bits.expand(
-    // TODO
+    _.eventType := eventType,
+    _.pr := prd,
+    _.writeBackValue := res,
+    _.pc := pc,
+    _.snapshotId := snapshotId,
+    _.misprediction := comp && !(branchPrediction === BranchPrediction.Taken)
   )
 
-  io.Instruction.ready := 1.B // TODO
+  io.Instruction.ready := (sendToMemQueue && !io.MemPackage.ready)
 
 }
 

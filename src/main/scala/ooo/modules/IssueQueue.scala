@@ -1,17 +1,10 @@
 package ooo.modules
 
 import chisel3._
-import chisel3.internal.firrtl.Width
-//import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
-import ooo.Types.EventType._
-import ooo.Types.MicroOp._
-
 import ooo.Configuration
-//import chisel3.util.{Decoupled, MuxCase, Valid}
 import chisel3.util._
-import ooo.modules.IssueQueue.{ ElementPort}
-import ooo.util.BundleExpander
+import ooo.modules.IssueQueue.ElementPort
 import ooo.modules.IdAllocator.{DeallocationPort,AllocatorStatePort,shouldBeKilled}
 
 
