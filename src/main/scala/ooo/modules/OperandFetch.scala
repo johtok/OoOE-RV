@@ -5,7 +5,7 @@ import chisel3.internal.firrtl.Width
 import ooo.Types._
 import ooo.Configuration
 import chisel3.util._
-import ooo.util.BundleExpander
+import ooo.util.{BundleExpander, SeqDataExtension}
 
 
 class OperandFetch()(implicit c: Configuration) extends Module {
@@ -15,11 +15,14 @@ class OperandFetch()(implicit c: Configuration) extends Module {
     val ROBPort = new ReadPort
   })
 
-  io.In.ready := io.Issue.ready
-  io.Issue.valid := false.B
+
+
 
   val valueReg = Reg(new IssuePackage())
   val delayReg = RegInit(0.B)
+  io.Issue.valid := delayReg
+
+  io.In.ready := !delayReg || (delayReg && io.Issue.ready)
 
   io.Issue.bits.opcode := valueReg.opcode
   io.Issue.bits.func := valueReg.func
@@ -34,18 +37,15 @@ class OperandFetch()(implicit c: Configuration) extends Module {
 
   //io.ROBPort.Address := io.In.bits.prs.id
 
-  io.ROBPort.Address := VecInit(Seq.tabulate(2)(n => io.In.bits.prs(n).id))
+  val hasToStall = !io.Issue.ready
 
-  
-  when(io.In.valid){
+  io.ROBPort.Address := Mux(hasToStall, valueReg.prs.map(_.id).toVec, io.In.bits.prs.map(_.id).toVec)
+
+
+
+  when(!hasToStall){
     valueReg := io.In.bits
-    delayReg := true.B
-  }
-
-  when(delayReg && io.Issue.ready){
-    //io.Issue.bits <> valueReg
-
-    io.Issue.valid := true.B
+    delayReg := io.In.valid
   }
 }
 

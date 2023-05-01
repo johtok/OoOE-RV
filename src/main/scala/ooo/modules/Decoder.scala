@@ -3,10 +3,12 @@ package ooo.modules
 import chisel3._
 import chisel3.util.{Decoupled, MuxCase, Valid}
 import ooo.Configuration
+import ooo.Types.EventType.CompletionWithValue
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
 import ooo.modules.Retirement.StateUpdate
 import ooo.util.{BundleExpander, LookUp, PairConnector}
+import ooo.Types.EventType._
 
 
 class Decoder()(implicit c: Configuration) extends Module {
@@ -45,6 +47,9 @@ class Decoder()(implicit c: Configuration) extends Module {
   )
 
   val hasToStall = WireDefault(0.B)
+  val insertBubble = WireDefault(0.B)
+  val hasValidInstruction = io.instructionStream.valid
+  val allowedToProgress = !(hasToStall || insertBubble) && hasValidInstruction
 
   val usesSnapshots = opcode.isOneOf(Opcode.branch, Opcode.jalr)
 
@@ -55,7 +60,7 @@ class Decoder()(implicit c: Configuration) extends Module {
   specArch2Phys.io.write.expand(
     _.prd := io.allocationPorts.physRegisterId.id,
     _.rd := rd,
-    _.write := !hasToStall
+    _.write := allowedToProgress
   )
 
   stateArch2Phys.io.write.expand(
@@ -64,7 +69,7 @@ class Decoder()(implicit c: Configuration) extends Module {
     _.write := io.stateUpdate.valid
   )
   io.robPort.allocSetup.expand(
-    _.update := !hasToStall,
+    _.update := allowedToProgress,
     _.prd := io.allocationPorts.physRegisterId.id,
     _.rd := rd
   )
@@ -79,14 +84,11 @@ class Decoder()(implicit c: Configuration) extends Module {
   stateArch2Phys.io.allocationCheck.newPid := io.allocationPorts.physRegisterId.id
   val doubleAllocation = stateArch2Phys.io.allocationCheck.isAllocated
 
-  io.allocationPorts.physRegisterId.take := Mux(doubleAllocation, 1.B, !hasToStall) // when double allocation we want to take the id no matter what
-  io.allocationPorts.snapshotId.take := usesSnapshots && !hasToStall
+  io.allocationPorts.physRegisterId.take := Mux(doubleAllocation, 1.B, allowedToProgress) // when double allocation we want to take the id no matter what
+  io.allocationPorts.snapshotId.take := usesSnapshots && allowedToProgress
 
-
-  hasToStall := MuxCase(0.B, Seq(
-    !io.instructionStream.valid -> 1.B, // no new instruction coming
-    io.eventBus.valid -> 1.B, // block pipeline when pc change or exception occurs
-    !io.issueStream.ready -> 1.B, // next stage not ready
+  insertBubble := MuxCase(0.B, Seq(
+    (io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(Branch, Jump, Exception)) -> 1.B,
     !io.allocationPorts.physRegisterId.offer -> 1.B, // no more phys ids to allocate
     doubleAllocation -> 1.B, // the currently available id is already allocated
     (!io.allocationPorts.snapshotId.offer && usesSnapshots) -> 1.B,
@@ -94,7 +96,7 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   specArch2Phys.io.save.expand(
     _.snapshotId := io.allocationPorts.snapshotId.id,
-    _.takeSnapshot := usesSnapshots && !hasToStall
+    _.takeSnapshot := usesSnapshots && allowedToProgress
   )
 
   specArch2Phys.io.restore.expand(
@@ -105,29 +107,36 @@ class Decoder()(implicit c: Configuration) extends Module {
   mapSelector.io.clear := io.eventBus.valid && io.eventBus.bits.eventType === EventType.Exception
   mapSelector.io.update.expand(
     _.rd := rd,
-    _.markAsSpec := !hasToStall
+    _.markAsSpec := allowedToProgress
   )
 
   val outReg = Reg(chiselTypeOf(io.issueStream.bits))
-  val validReg = RegNext(!hasToStall, 0.B)
+  val validReg = RegInit(0.B)
 
-  outReg.prs.map(_.id).zip(prs).connectPairs()
+  hasToStall := validReg && !io.issueStream.ready
 
-  outReg.prs(0).ready := Mux(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 1.B, !mapSelector.io.read.useSpec(0) || (mapSelector.io.read.useSpec(0) && io.robPort.ready(0)))
-  outReg.prs(1).ready := Mux(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 1.B, !mapSelector.io.read.useSpec(1) || (mapSelector.io.read.useSpec(1) && io.robPort.ready(1)))
+  when(!hasToStall) {
+    validReg := Mux(insertBubble, 0.B, hasValidInstruction)
 
-  outReg.expand(
-    _.opcode := opcode,
-    _.func := funct7(5) ## funct3,
-    _.prd := io.allocationPorts.physRegisterId.id,
-    _.immediate := immediate.asUInt,
-    _.pc := io.instructionStream.bits.pc,
-    _.snapshotId := io.allocationPorts.snapshotId.id,
-    _.branchPrediction := io.instructionStream.bits.branchPrediction
-  )
+    outReg.prs.map(_.id).zip(prs).connectPairs()
+
+    outReg.prs(0).ready := Mux(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 1.B, !mapSelector.io.read.useSpec(0) || (mapSelector.io.read.useSpec(0) && io.robPort.ready(0)))
+    outReg.prs(1).ready := Mux(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 1.B, !mapSelector.io.read.useSpec(1) || (mapSelector.io.read.useSpec(1) && io.robPort.ready(1)))
+
+    outReg.expand(
+      _.opcode := opcode,
+      _.func := funct7(5) ## funct3,
+      _.prd := io.allocationPorts.physRegisterId.id,
+      _.immediate := immediate.asUInt,
+      _.pc := io.instructionStream.bits.pc,
+      _.snapshotId := io.allocationPorts.snapshotId.id,
+      _.branchPrediction := io.instructionStream.bits.branchPrediction
+    )
+  }
+
 
   io.issueStream.bits := outReg
-  io.instructionStream.ready := !(hasToStall && !io.instructionStream.valid)
+  io.instructionStream.ready := allowedToProgress
   io.issueStream.valid := validReg
 }
 

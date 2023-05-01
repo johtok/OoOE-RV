@@ -15,10 +15,12 @@ class Execute()(implicit c: Configuration) extends Module {
     val MemPackage = Decoupled(new MemPackage)
   })
 
+  // TODO: kill instructions
+
   val ready = Wire(Bool())
 
-  val valid = RegNext(io.Instruction.valid, 0.B)
-  val instruction = RegEnable(io.Instruction.bits, ready)
+  val valid = io.Instruction.valid
+  val instruction = io.Instruction.bits
   import instruction._
 
   val a = LookUp(opcode, operands(0),

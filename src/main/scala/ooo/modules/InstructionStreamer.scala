@@ -5,6 +5,7 @@ import chisel3.experimental.{ChiselAnnotation, annotate}
 import chisel3.util.{Decoupled, MuxCase, Valid}
 import firrtl.annotations.MemoryArrayInitAnnotation
 import ooo.Configuration
+import ooo.Types.EventType._
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{BranchPrediction, Event, EventType, InstructionPackage, Opcode, Word}
 import ooo.util.{BundleExpander, Program, SIntExtension, UIntSeqExtension}
@@ -38,7 +39,7 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
 
   nextPc := MuxCase(pc + 4.U, Seq(
     programEnd -> pc,
-    io.eventBus.valid -> io.eventBus.bits.pc,
+    (io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(Branch, Jump)) -> io.eventBus.bits.pc,
     (!RegNext(io.instructionStream.ready, 1.B) && !io.instructionStream.ready) -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))
