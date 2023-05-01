@@ -15,7 +15,11 @@ class Execute()(implicit c: Configuration) extends Module {
     val MemPackage = Decoupled(new MemPackage)
   })
 
-  import io.Instruction.bits._
+  val ready = Wire(Bool())
+
+  val valid = RegNext(io.Instruction.valid, 0.B)
+  val instruction = RegEnable(io.Instruction.bits, ready)
+  import instruction._
 
   val a = LookUp(opcode, operands(0),
     Opcode.auipc -> pc,
@@ -33,8 +37,14 @@ class Execute()(implicit c: Configuration) extends Module {
 
   val sendToMemQueue = opcode.isOneOf(Opcode.load, Opcode.store)
 
-  io.MemPackage.valid := io.Instruction.valid && sendToMemQueue
-  io.MemPackage.bits.expand(
+  val memPackageValid = RegNext(valid && sendToMemQueue, 0.B)
+  val memPackage = Reg(chiselTypeOf(io.MemPackage.bits))
+  io.MemPackage.expand(
+    _.valid := memPackageValid,
+    _.bits := memPackage
+  )
+
+  memPackage.expand(
     _.isWrite := opcode === Opcode.store,
     _.func := func(2, 0),
     _.prd := prd,
@@ -46,9 +56,14 @@ class Execute()(implicit c: Configuration) extends Module {
     (opcode === Opcode.jalr) -> Jump
   ))
 
-  io.eventBus.bits.elements.foreach(_._2 := DontCare)
-  io.eventBus.valid := io.Instruction.valid && !sendToMemQueue
-  io.eventBus.bits.expand(
+  val eventValid = RegNext(valid && !sendToMemQueue)
+  val event = Reg(chiselTypeOf(io.eventBus.bits))
+  io.eventBus.expand(
+    _.valid := eventValid,
+    _.bits := event
+  )
+
+  event.expand(
     _.eventType := eventType,
     _.pr := prd,
     _.writeBackValue := res,
@@ -57,7 +72,9 @@ class Execute()(implicit c: Configuration) extends Module {
     _.misprediction := comp && !(branchPrediction === BranchPrediction.Taken)
   )
 
-  io.Instruction.ready := (sendToMemQueue && !io.MemPackage.ready)
+  io.Instruction.ready := ready
+
+  ready := !valid || (valid && (!sendToMemQueue || (sendToMemQueue && io.MemPackage.ready)))
 
 }
 
