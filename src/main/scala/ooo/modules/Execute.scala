@@ -74,7 +74,7 @@ class Execute()(implicit c: Configuration) extends Module {
 
   io.Instruction.ready := ready
 
-  ready := !valid || (valid && (!sendToMemQueue || (sendToMemQueue && io.MemPackage.ready)))
+  ready := !valid || (valid && (!sendToMemQueue || (sendToMemQueue && (!memPackageValid || (memPackageValid && io.MemPackage.ready)))))
 
 }
 
