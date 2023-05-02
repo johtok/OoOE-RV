@@ -12,8 +12,8 @@ class Branch_input(val XLEN: Int) extends Bundle {
 
 }
 
-class Branch_output(val XLEN: Int) extends Bundle {
-        val output = Output(UInt(XLEN.W))
+class Branch_output() extends Bundle {
+        val output = Output(Bool())
 }
 class BranchInterface(val XLEN: Int) extends Bundle {
         val in = new Branch_input(XLEN)
@@ -27,22 +27,20 @@ val input1 = io.in.input1
 val input2 = io.in.input2
 val func3 = io.in.func3
 val output = io.out.output
-val imm = io.in.imm
-val PC = io.in.PC
 
-val BEQ = input1 === input2
-val BNE = input1 =/= input2
-val BLT = input1.asSInt < input2.asSInt
-val BGE = input1.asSInt >= input2.asSInt
-val BLTU = input1 < input2
-val BGEU = input1 >= input2
+val BEQ = 0.U
+val BNE = 1.U
+val BLT = 4.U
+val BGE = 5.U
+val BLTU = 6.U
+val BGEU = 7.U
 switch(func3){
-is(0.U){when(BEQ){output := PC+imm}}
-is(1.U){when(BNE){output := PC+imm}}
-is(4.U){when(BLT){output := PC+imm}}
-is(5.U){when(BGE){output := PC+imm}}
-is(6.U){when(BLTU){output := PC+imm}}
-is(7.U){when(BGEU){output := PC+imm}}
+is(BEQ){when(input1 === input2){output := 1.B}}
+is(BNE){when(input1 =/= input2){output := 1.B}}
+is(BLT){when(input1.asSInt < input2.asSInt){output := 1.B}}
+is(BGE){when(input1.asSInt >= input2.asSInt){output := 1.B}}
+is(BLTU){when(input1 < input2){output := 1.B}}
+is(BGEU){when(input1 >= input2){output := 1.B}}
 }
 
 }
