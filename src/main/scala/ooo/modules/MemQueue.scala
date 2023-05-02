@@ -40,7 +40,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
     val Full = Output(Bool())
   })
 
-  val Fullsize = log2Ceil(c.memQueueSize) - 2
+  val Fullsize = c.memQueueSize - 2
 
   //io.Retire.ready := io.MemPort.ready
 
@@ -64,7 +64,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   val FullCnt = Wire(UInt(log2Ceil(c.memQueueSize).W))
   
-  FullCnt := PopCount(Seq.tabulate(c.memQueueSize)(n => MemQueue(n).empty)) 
+  FullCnt := PopCount(Seq.tabulate(c.memQueueSize)(n => !MemQueue(n).empty)) 
 
   io.Full := (FullCnt >= Fullsize.U).asBool
 
@@ -83,7 +83,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   // Add kill logic. 
 
-  when(io.Package.valid && !shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped)){
+  when(io.Package.valid && !(io.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped))){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
         when(MemQueue(i).empty){
