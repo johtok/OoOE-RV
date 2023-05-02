@@ -25,6 +25,10 @@ class Retirement()(implicit c: Configuration) extends Module {
     val eventBus = Flipped(Valid(new Event))
   })
 
+  val debug = if(c.simulation) Some(IO(new Bundle {
+    val exception = Output(Bool())
+  })) else None
+
   val tail = io.dealloc.oldestAllocatedId
   val nextTail = io.dealloc.nextOldestAllocatedId
 
@@ -50,6 +54,11 @@ class Retirement()(implicit c: Configuration) extends Module {
     _.bits.pr := tail,
     _.bits.rd := io.robPort.rd
   )
+
+  if(c.simulation) {
+    debug.get.exception := retire && io.robPort.hadException
+  }
+
 
 
 }

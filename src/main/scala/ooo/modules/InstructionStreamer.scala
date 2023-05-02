@@ -63,5 +63,3 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
 
 
 }
-
-object InstructionStreamer extends App { emitVerilog(new InstructionStreamer(Program("empty",Seq.fill(8*1024)(Random.nextInt(255))))(Configuration.random()))}

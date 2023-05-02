@@ -10,10 +10,13 @@ class CoreTest extends AnyFlatSpec with ChiselScalatestTester {
 
   val path = "src/test/programs"
   getBinFiles(path).filter(_ == "addlarge.bin").foreach { bin =>
+    val program = Program.load(s"$path/$bin")
     "Core" should s"execute $bin correctly" in {
-      test(new Core(Program.load(s"$path/$bin"), Configuration.default().copy(issueQueueSize = 2, simulation = true))).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
+      test(new Core(program, Configuration.default().copy(issueQueueSize = 2, simulation = true))).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
         print(bin)
-        dut.clock.step(30)
+        while(!dut.debug.get.ecall.peekBoolean()) dut.clock.step()
+        dut.clock.step()
+        dut.debug.get.regfile.zip(program.result).foreach { case (reg, value) => reg.expect(value.U) }
         println(s" ✓")
       }
     }

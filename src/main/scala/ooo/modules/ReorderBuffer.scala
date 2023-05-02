@@ -4,7 +4,7 @@ import chisel3._
 import ooo.Configuration
 import chisel3.util._
 import ooo.Types.EventType._
-import ooo.Types.{ArchRegisterId, Event, PhysRegisterId, ReadPort, Word, WritePort}
+import ooo.Types.{ArchRegisterId, Event, EventType, PhysRegisterId, ReadPort, Word, WritePort}
 import ooo.modules.ReorderBuffer.{DecoderPort, RetirementPort}
 import ooo.util.SeqDataExtension
 
@@ -23,6 +23,7 @@ object ReorderBuffer {
   class RetirementPort(implicit c: Configuration) extends Bundle {
     val pr = Input(PhysRegisterId())
     val ready = Output(Bool())
+    val hadException = Output(Bool())
     val rd = Output(ArchRegisterId())
   }
 }
@@ -45,6 +46,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   val dataMem = SyncReadMem(c.reorderBufferSize, Word())
   val readyMem = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
+  val exceptions = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val destMem = SyncReadMem(c.reorderBufferSize, ArchRegisterId())
 
   val dataShadow = if(c.simulation) Some(RegInit(Seq.fill(c.reorderBufferSize)(0.U(32.W)).toVec)) else None
@@ -57,6 +59,10 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
     dataMem.write(io.eventBus.bits.pr, io.eventBus.bits.writeBackValue)
   }
 
+  when(io.eventBus.valid && io.eventBus.bits.eventType === EventType.Exception) {
+    exceptions(io.eventBus.bits.pr) := 1.B
+  }
+
   if(c.simulation) {
     when(hasWriteBack) { dataShadow.get.apply(io.eventBus.bits.pr) := io.eventBus.bits.writeBackValue }
     debug.get := dataShadow.get
@@ -64,7 +70,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   io.decoderPort.ready := io.decoderPort.prs.map(pr => RegNext(readyMem(pr)))
 
-  val markAsReady = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(CompletionWithValue, Completion, Branch, Jump)
+  val markAsReady = io.eventBus.valid
 
   when(io.decoderPort.allocSetup.update) {
     readyMem(io.decoderPort.allocSetup.prd) := 0.B
@@ -77,6 +83,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   io.retirementPort.rd := destMem.read(io.retirementPort.pr)
   io.retirementPort.ready := RegNext(readyMem(io.retirementPort.pr))
+  io.retirementPort.hadException := RegNext(exceptions(io.retirementPort.pr))
 
 }
 

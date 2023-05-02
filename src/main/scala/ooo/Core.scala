@@ -112,7 +112,7 @@ class Core(program: Program, config: Configuration) extends Module {
     debug.get.regfile := Stage.decoder.debug.get.map { id =>
       rob.debug.get.apply(id)
     }.toVec
-    debug.get.ecall := 0.B
+    debug.get.ecall := Stage.retirement.debug.get.exception
   }
 
 }

@@ -6,7 +6,7 @@ import java.io.{File, PrintWriter}
 import java.nio.file.{Files, Paths}
 import scala.util.Random
 
-case class Program(name: String, bytes: Seq[Int]) {
+case class Program(name: String, bytes: Seq[Int], result: Seq[BigInt]) {
   def getBytes: Seq[UInt] = bytes.map(_.U(8.W))
   def getWords: Seq[UInt] = bytes
     .map(BigInt(_))
@@ -19,14 +19,24 @@ object Program {
 
   def random(): Program = Program(
     "Random",
-    Seq.fill(1024)(Random.nextInt(255))
+    Seq.fill(1024)(Random.nextInt(255)),
+    Seq.fill(32)(Random.nextInt(255))
   )
 
   def load(fileName: String): Program = {
     Program(
       fileName,
-      Files.readAllBytes(Paths.get(fileName)).toIndexedSeq.map(_ & 0xFF)
+      Files.readAllBytes(Paths.get(fileName)).toIndexedSeq.map(_ & 0xFF),
+      loadResult(fileName.replace(".bin",".res"))
     )
+  }
+  def loadResult(fileName: String): Seq[BigInt] = {
+    Files.readAllBytes(Paths.get(fileName))
+      .toIndexedSeq
+      .map(b => BigInt(b) & 0xFF)
+      .grouped(4)
+      .map(a => a(0) | (a(1) << 8) | (a(2) << 16) | (a(3) << 24))
+      .toSeq
   }
   def load(fileNames: Seq[String]): Seq[Program] = fileNames.map(load)
   def load(fileName: String, fileNames: String*): Seq[Program] = load(fileName +: fileNames)
