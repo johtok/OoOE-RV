@@ -1,7 +1,9 @@
 package ooo.modules
 
 import chisel3._
+import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 import chisel3.internal.firrtl.Width
+import ooo.util.SeqDataExtension
 //import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
 import ooo.Types.EventType._
@@ -52,7 +54,11 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   io.Dealloc.release := DontCare
 
-  val MemQueue = Reg(Vec(c.memQueueSize, new QueueElementPort()))
+  val MemQueue = RegInit(Vec(c.memQueueSize, new QueueElementPort()), Seq.fill(c.memQueueSize) {
+    new QueueElementPort().Lit(
+      _.empty -> 1.B
+    )
+  }.toVec)
 
   io.Package.ready := VecInit(Seq.tabulate(c.memQueueSize)(n => MemQueue(n).empty)).reduceTree(_ | _)
 
