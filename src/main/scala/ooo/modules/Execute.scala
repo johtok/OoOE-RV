@@ -35,7 +35,17 @@ class Execute()(implicit c: Configuration) extends Module {
   )
 
   // comp indicates whether branch condition was true
-  val (res, comp) = ALU(func)(a, b)
+
+  val fn = LookUp(opcode, func,
+    Opcode.load -> 0.U,
+    Opcode.store -> 0.U,
+    Opcode.auipc -> 0.U,
+    Opcode.lui -> 0.U,
+    Opcode.jalr -> 0.U,
+    Opcode.jal -> 0.U
+  )
+
+  val (res, comp) = ALU(fn)(a, b)
 
   val sendToMemQueue = opcode.isOneOf(Opcode.load, Opcode.store)
 

@@ -5,7 +5,7 @@ import chisel3.util.{Decoupled, MuxCase, Valid}
 import ooo.Configuration
 import ooo.Types.EventType.CompletionWithValue
 import ooo.Types.Immediate.InstructionFieldExtractor
-import ooo.Types.{ArchRegisterId, Event, EventType, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
+import ooo.Types.{ArchRegisterId, Event, EventType, Immediate, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
 import ooo.modules.Retirement.StateUpdate
 import ooo.util.{BundleExpander, LookUp, PairConnector}
 import ooo.Types.EventType._
@@ -125,7 +125,7 @@ class Decoder()(implicit c: Configuration) extends Module {
 
     outReg.expand(
       _.opcode := opcode,
-      _.func := funct7(5) ## funct3,
+      _.func := Mux(opcode.isOneOf(Opcode.immediate), 0.U, funct7(6)) ## funct3,
       _.prd := io.allocationPorts.physRegisterId.id,
       _.immediate := immediate.asUInt,
       _.pc := io.instructionStream.bits.pc,

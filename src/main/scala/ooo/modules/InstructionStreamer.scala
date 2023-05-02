@@ -37,19 +37,29 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   // predict backward branches as taken
   val prediction = Mux(imm.sign, BranchPrediction.Taken, BranchPrediction.NotTaken)
 
+  val pcChange = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(Branch, Jump)
+
+  val validReg = RegInit(0.B)
+
   nextPc := MuxCase(pc + 4.U, Seq(
     programEnd -> pc,
-    (io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(Branch, Jump)) -> io.eventBus.bits.pc,
-    (!RegNext(io.instructionStream.ready, 1.B) && !io.instructionStream.ready) -> pc,
+    pcChange -> io.eventBus.bits.pc,
+    (!io.instructionStream.ready && validReg) -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))
 
-  io.instructionStream.valid := RegNext(!io.eventBus.valid && !programEnd, 0.B)
-  io.instructionStream.bits := Reg(new InstructionPackage).expand(
-    _.instruction := instruction,
-    _.pc := pc,
-    _.branchPrediction := prediction
-  )
+  io.instructionStream.valid := validReg
+  val outReg = Reg(new InstructionPackage)
+  io.instructionStream.bits := outReg
+
+  when(io.instructionStream.ready || !validReg) {
+    validReg := !programEnd
+    outReg.expand(
+      _.instruction := instruction,
+      _.pc := pc,
+      _.branchPrediction := prediction
+    )
+  }
 
 
 }
