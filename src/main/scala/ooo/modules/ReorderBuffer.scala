@@ -41,15 +41,26 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   })
 
+  val debug = if(c.simulation) Some(IO(Output(Vec(c.reorderBufferSize, Word())))) else None
+
   val dataMem = SyncReadMem(c.reorderBufferSize, Word())
   val readyMem = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val destMem = SyncReadMem(c.reorderBufferSize, ArchRegisterId())
+
+  val dataShadow = if(c.simulation) Some(RegInit(Seq.fill(c.reorderBufferSize)(0.U(32.W)).toVec)) else None
 
   io.data.ReadData := io.data.Address.map(dataMem.read(_)).toVec
 
   val hasWriteBack = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(CompletionWithValue, Jump)
 
-  when(hasWriteBack) { dataMem.write(io.eventBus.bits.pr, io.eventBus.bits.writeBackValue) }
+  when(hasWriteBack) {
+    dataMem.write(io.eventBus.bits.pr, io.eventBus.bits.writeBackValue)
+  }
+
+  if(c.simulation) {
+    when(hasWriteBack) { dataShadow.get.apply(io.eventBus.bits.pr) := io.eventBus.bits.writeBackValue }
+    debug.get := dataShadow.get
+  }
 
   io.decoderPort.ready := io.decoderPort.prs.map(pr => RegNext(readyMem(pr)))
 

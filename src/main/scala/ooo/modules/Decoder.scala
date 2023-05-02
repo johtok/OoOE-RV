@@ -26,9 +26,13 @@ class Decoder()(implicit c: Configuration) extends Module {
     val eventBus = Flipped(Valid(new Event))
   })
 
+  val debug = if(c.simulation) Some(IO(Output(Vec(32, PhysRegisterId())))) else None
+
   val mapSelector = Module(new MapSelector)
   val specArch2Phys = Module(new SpeculativeArch2PhysMap)
   val stateArch2Phys = Module(new StateArch2PhysMap)
+
+  if(c.simulation) debug.get := stateArch2Phys.debug.get
 
 
   val instruction = io.instructionStream.bits.instruction

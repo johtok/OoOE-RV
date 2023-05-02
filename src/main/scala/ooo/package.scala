@@ -11,7 +11,8 @@ package object ooo {
                             issueQueueSize: Int,
                             memQueueSize: Int,
                             numOfSnapshots: Int,
-                            initialStateMap: Seq[Int]
+                            initialStateMap: Seq[Int],
+                            simulation: Boolean = false
                           ) {
     val physRegisterIdWidth = log2Ceil(reorderBufferSize).W
     val memIdWidth = log2Ceil(memQueueSize).W

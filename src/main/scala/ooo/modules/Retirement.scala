@@ -28,9 +28,7 @@ class Retirement()(implicit c: Configuration) extends Module {
   val tail = io.dealloc.oldestAllocatedId
   val nextTail = io.dealloc.nextOldestAllocatedId
 
-  io.robPort.pr := nextTail
-
-  val retire = !io.dealloc.noAllocations && io.robPort.ready && !io.eventBus.valid
+  val retire = !io.dealloc.noAllocations && io.robPort.ready && !(io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(EventType.Branch, EventType.Jump))
 
   val branch = io.eventBus.bits.eventType === EventType.Branch
   val jump = io.eventBus.bits.eventType === EventType.Jump
@@ -40,6 +38,8 @@ class Retirement()(implicit c: Configuration) extends Module {
     _.newHead := io.eventBus.bits.pr,
     _.pushBackHead := shouldJump
   )
+
+  io.robPort.pr := Mux(retire, io.dealloc.nextOldestAllocatedId, io.dealloc.oldestAllocatedId)
 
   io.snapDealloc.release := branch
 

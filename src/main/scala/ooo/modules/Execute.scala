@@ -65,7 +65,8 @@ class Execute()(implicit c: Configuration) extends Module {
 
   val eventType = MuxCase(CompletionWithValue, Seq(
     (opcode === Opcode.branch) -> Branch,
-    (opcode === Opcode.jalr) -> Jump
+    (opcode === Opcode.jalr) -> Jump,
+    (opcode === Opcode.system) -> Completion
   ))
 
   val eventValid = RegNext(valid && !sendToMemQueue)
