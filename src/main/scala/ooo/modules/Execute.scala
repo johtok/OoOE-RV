@@ -12,8 +12,22 @@ class Execute()(implicit c: Configuration) extends Module {
     val Instruction = Flipped(Decoupled(new ExecutePackage))
     val eventBus = Decoupled(new Event)
   })
+//TODO: find out if XLEN is given in types.scala
+  val XLEN = 32; 
 
-  io.elements.foreach(_._2 := DontCare)
+  //OLD Code FROM TJARK
+    //io.elements.foreach(_._2 := DontCare)
+
+  //Functional Units
+  
+    //ALU
+  val ALU = Module(new ALU(XLEN))
+    //BRANCH
+  val BRANCH = Module(new JUMP())
+    //JUMP
+  val JUMP = Module(new ALU())
+    
+  //
 
 }
 
