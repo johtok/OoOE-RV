@@ -146,7 +146,7 @@ class IssueElement()(implicit c: Configuration) extends Module{
 
     // Branch / Jump kill eventBus
 
-    when(shouldBeKilled(valueReg.prd, io.Port.event.bits.pr, io.Port.StatePort.oldest, io.Port.StatePort.youngest, io.Port.StatePort.wrapped)){
+    when(io.Port.event.valid && io.Port.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(valueReg.prd, io.Port.event.bits.pr, io.Port.StatePort.oldest, io.Port.StatePort.youngest, io.Port.StatePort.wrapped)){
       valueReg.prs(0).ready := false.B
       valueReg.prs(1).ready := false.B
 
