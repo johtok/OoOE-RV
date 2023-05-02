@@ -58,7 +58,7 @@ class Decoder()(implicit c: Configuration) extends Module {
   stateArch2Phys.io.read.rs := rs
 
   specArch2Phys.io.write.expand(
-    _.prd := io.allocationPorts.physRegisterId.id,
+    _.prd := Mux(rd === 0.U, c.initialStateMap.head.U, io.allocationPorts.physRegisterId.id),
     _.rd := rd,
     _.write := allowedToProgress
   )
@@ -66,7 +66,7 @@ class Decoder()(implicit c: Configuration) extends Module {
   stateArch2Phys.io.write.expand(
     _.prd := io.stateUpdate.bits.pr,
     _.rd := io.stateUpdate.bits.rd,
-    _.write := io.stateUpdate.valid
+    _.write := io.stateUpdate.valid && io.stateUpdate.bits.rd =/= 0.U
   )
   io.robPort.allocSetup.expand(
     _.update := allowedToProgress,
