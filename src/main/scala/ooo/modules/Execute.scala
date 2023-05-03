@@ -16,18 +16,21 @@ class Execute()(implicit c: Configuration) extends Module {
   val XLEN = 32; 
 
   //OLD Code FROM TJARK
-    //io.elements.foreach(_._2 := DontCare)
+    io.elements.foreach(_._2 := DontCare)
 
+  //New Code:
+  /*
   //Functional Units
   
     //ALU
-  val ALU = Module(new ALU(XLEN))
+  val ALU = Module(new ALU(XLEN)) //TODO: fix input of ALU to be more alligned with the rest of the development
+  ALU.io.in <> io.Instruction //TODO: make sure that names in interfaces match  
     //BRANCH
-  val BRANCH = Module(new JUMP())
+  val BRANCH = Module(new Branch(XLEN))
+  BRANCH.io.in <> io.Instruction //TODO: make sure that names in interfaces match
     //JUMP
-  val JUMP = Module(new ALU())
-    
-  //
-
+  val JUMP = Module(new Jump(XLEN))
+  JUMP.io.in <> io.Instruction //TODO: make sure that names in interfaces match
+*/
 }
 
