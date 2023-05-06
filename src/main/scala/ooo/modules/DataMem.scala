@@ -23,13 +23,12 @@ class DataMem()(implicit c: Configuration) extends Module {
     val MemPort = Flipped(new MemPort)
   })
 
-  io.MemPort.request.ready := false.B
+  io.MemPort.request.ready := true.B
   io.MemPort.response.valid := false.B
 
   val mem = SyncReadMem (1024 , Word())
 
   val ReadReg = RegInit(0.B)
-
 
   io.MemPort.response.bits.readData := mem.read(io.MemPort.request.bits.Address)
 
@@ -48,4 +47,4 @@ class DataMem()(implicit c: Configuration) extends Module {
   
 }
 
-//object Datapenis extends App { emitVerilog(new DataMem()(Configuration.random()))}
+// object Datapenis extends App { emitVerilog(new DataMem()(Configuration.random()))}
