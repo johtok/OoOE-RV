@@ -79,10 +79,6 @@ class MemQueue()(implicit c: Configuration) extends Module {
     WriteCarry(i) := false.B
   }
 
-
-
-  // Add kill logic. 
-
   when(io.Package.valid && !(io.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped))){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
