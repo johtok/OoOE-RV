@@ -115,7 +115,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   when(io.MemPort.request.ready){
     //io.Retire.ready := true.B
 
-    when(io.Dealloc.noAllocations){
+    when(!io.Dealloc.noAllocations){
       for(i <- 0 until c.memQueueSize){
         when(MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId){
           io.MemPort.request.valid := true.B
