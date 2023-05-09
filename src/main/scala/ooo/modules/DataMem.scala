@@ -35,13 +35,14 @@ class DataMem()(implicit c: Configuration) extends Module {
   when(io.MemPort.request.valid){
     when(io.MemPort.request.bits.isWrite){
       mem.write(io.MemPort.request.bits.Address, io.MemPort.request.bits.WriteData)
+      io.MemPort.response.valid := true.B
     }.otherwise{
       ReadReg := true.B
     }
   }
 
   when(ReadReg && io.MemPort.response.ready){
-    io.MemPort.response.valid
+    io.MemPort.response.valid := true.B
     ReadReg := false.B
   }
   

@@ -79,7 +79,11 @@ class MemQueue()(implicit c: Configuration) extends Module {
     WriteCarry(i) := false.B
   }
 
-  when(io.Package.valid && !(io.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped))){
+  val condCheck = Wire(Bool())
+
+  condCheck := (io.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped))
+
+  when(io.Package.valid && !condCheck){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
         when(MemQueue(i).empty){
@@ -110,14 +114,26 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   //val ExpectData = RegInit(0.B)
 
-  val ReadData = Reg(new Bundle { val Expect = Bool(); val id = PhysRegisterId() })
+  /*
+
+  val ReadData = Reg(new Bundle { val Expect = Bool(); val id = PhysRegisterId() }).Lit(
+      _.Expect -> 0.B
+  )
+
+  */
+
+  val ReadDataExpect = RegInit(0.B)
+  //val ReadDataID = RegInit(PhysRegisterId())
+  val ReadDataID = Reg(PhysRegisterId())
+
+
 
   when(io.MemPort.request.ready){
     //io.Retire.ready := true.B
 
     when(!io.Dealloc.noAllocations){
       for(i <- 0 until c.memQueueSize){
-        when(MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId){
+        when((MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId) && !MemQueue(i).empty){
           io.MemPort.request.valid := true.B
 
           io.MemPort.request.bits.Address := MemQueue(i).In.Address
@@ -128,12 +144,15 @@ class MemQueue()(implicit c: Configuration) extends Module {
               io.MemPort.request.bits.isWrite := true.B
 
               io.EventOut.valid := true.B
-              io.EventOut.bits.eventType := CompletionWithValue
+              io.EventOut.bits.eventType := Completion
 
+              MemQueue(i).empty := true.B
             }.otherwise{ // Read
               io.MemPort.request.bits.isWrite := false.B
-              ReadData.Expect := true.B // Indicates that the system should expect readdata soon
-              ReadData.id := MemQueue(i).In.prd
+              //ReadData.Expect := true.B // Indicates that the system should expect readdata soon
+              //ReadData.id := MemQueue(i).In.prd
+              ReadDataExpect := true.B // Indicates that the system should expect readdata soon
+              ReadDataID := MemQueue(i).In.prd
             }
 
             MemQueue(i).empty := true.B
@@ -143,7 +162,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
     }    
   }
 
-  when(ReadData.Expect){
+  when(ReadDataExpect){
 
     io.MemPort.response.ready := true.B
     //when(io.MemPort.bits.ReadData.valid && io.Write.ready){
@@ -156,13 +175,14 @@ class MemQueue()(implicit c: Configuration) extends Module {
       io.Write.valid := true.B
       */
 
-      io.EventOut.bits.pr := ReadData.id
+      //io.EventOut.bits.pr := ReadData.id
+      io.EventOut.bits.pr := ReadDataID
       io.EventOut.bits.writeBackValue := io.MemPort.response.bits.readData
       io.EventOut.valid := true.B
 
       io.EventOut.bits.eventType := CompletionWithValue
     
-      ReadData.Expect := false.B
+      ReadDataExpect := false.B
     }
   }
 
