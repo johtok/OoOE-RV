@@ -44,7 +44,12 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   //io.Retire.ready := io.MemPort.ready
 
-  io.MemPort.request.bits := DontCare
+  //io.MemPort.request.bits := DontCare
+
+  io.MemPort.request.bits.isWrite := false.B
+  io.MemPort.request.bits.WriteData := 0.U
+  io.MemPort.request.bits.Address := 0.U
+
 
   io.MemPort.request.valid := false.B
   io.MemPort.response.ready := false.B
@@ -134,12 +139,15 @@ class MemQueue()(implicit c: Configuration) extends Module {
     when(!io.Dealloc.noAllocations){
       for(i <- 0 until c.memQueueSize){
         when((MemQueue(i).In.prd === io.Dealloc.oldestAllocatedId) && !MemQueue(i).empty){
-          io.MemPort.request.valid := true.B
+          //io.MemPort.request.valid := true.B
 
           io.MemPort.request.bits.Address := MemQueue(i).In.Address
           io.MemPort.request.bits.WriteData := MemQueue(i).In.prd
 
           when(io.MemPort.request.ready){
+
+            io.MemPort.request.valid := true.B
+
             when(MemQueue(i).In.isWrite){ // Write
               io.MemPort.request.bits.isWrite := true.B
 
