@@ -1,13 +1,13 @@
 package ooo.modules
 
 import chisel3._
-import chisel3.util.{Decoupled, MuxCase, Valid}
+import chisel3.util.{Decoupled, MuxCase, RegEnable, Valid}
 import ooo.Configuration
 import ooo.Types.EventType.CompletionWithValue
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{ArchRegisterId, Event, EventType, Immediate, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
 import ooo.modules.Retirement.StateUpdate
-import ooo.util.{BundleExpander, LookUp, PairConnector}
+import ooo.util.{BundleExpander, LookUp, PairConnector, SeqDataExtension}
 import ooo.Types.EventType._
 
 
@@ -83,7 +83,9 @@ class Decoder()(implicit c: Configuration) extends Module {
     .zip(specArch2Phys.io.read.prs)
     .map { case ((useSpec, state), spec) => Mux(useSpec, spec, state) }
 
-  io.robPort.prs.zip(prs).connectPairs()
+  val prsReg = RegEnable(prs.toVec, !hasToStall)
+
+  io.robPort.prs.zip(Mux(hasToStall, prsReg, prs.toVec)).connectPairs()
 
   stateArch2Phys.io.allocationCheck.newPid := io.allocationPorts.physRegisterId.id
   val doubleAllocation = stateArch2Phys.io.allocationCheck.isAllocated
@@ -119,13 +121,11 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   hasToStall := validReg && !io.issueStream.ready
 
+
   when(!hasToStall) {
     validReg := Mux(insertBubble, 0.B, hasValidInstruction)
 
     outReg.prs.map(_.id).zip(prs).connectPairs()
-
-    outReg.prs(0).ready := Mux(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 1.B, !mapSelector.io.read.useSpec(0) || (mapSelector.io.read.useSpec(0) && io.robPort.ready(0)))
-    outReg.prs(1).ready := Mux(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 1.B, !mapSelector.io.read.useSpec(1) || (mapSelector.io.read.useSpec(1) && io.robPort.ready(1)))
 
     outReg.expand(
       _.opcode := opcode,
@@ -138,8 +138,12 @@ class Decoder()(implicit c: Configuration) extends Module {
     )
   }
 
+  val useSpecMapReg = RegEnable(mapSelector.io.read.useSpec, VecInit(0.B, 0.B), !hasToStall)
 
   io.issueStream.bits := outReg
+  io.issueStream.bits.prs(0).ready := Mux(RegNext(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 0.B), 1.B, !useSpecMapReg(0) || (useSpecMapReg(0) && io.robPort.ready(0)))
+  io.issueStream.bits.prs(1).ready := Mux(RegNext(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 0.B), 1.B, !useSpecMapReg(1) || (useSpecMapReg(1) && io.robPort.ready(1)))
+
   io.instructionStream.ready := allowedToProgress
   io.issueStream.valid := validReg
 }

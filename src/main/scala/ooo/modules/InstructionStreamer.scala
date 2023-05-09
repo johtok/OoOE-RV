@@ -21,6 +21,10 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
     val eventBus = Flipped(Valid(new Event))
   })
 
+  val hasToStall = WireDefault(0.B)
+  val insertBubble = WireDefault(0.B)
+  val allowedToProgress = !(hasToStall || insertBubble)
+
   val pc = RegInit(Word(), 0.U)
   val nextPc = Wire(Word())
   pc := nextPc
@@ -37,23 +41,28 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   // predict backward branches as taken
   val prediction = Mux(imm.sign, BranchPrediction.Taken, BranchPrediction.NotTaken)
 
-  val pcChange = io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(Branch, Jump)
+  val pcChange = io.eventBus.valid && ((io.eventBus.bits.eventType.isOneOf(Branch) && io.eventBus.bits.misprediction) || io.eventBus.bits.eventType.isOneOf(Jump))
 
   val validReg = RegInit(0.B)
 
   nextPc := MuxCase(pc + 4.U, Seq(
     programEnd -> pc,
     pcChange -> io.eventBus.bits.pc,
-    (!io.instructionStream.ready && validReg) -> pc,
+    !allowedToProgress -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))
 
-  io.instructionStream.valid := validReg
+  hasToStall := validReg && !io.instructionStream.ready
+  insertBubble := MuxCase(0.B, Seq(
+    pcChange -> 1.B
+  ))
+
+  io.instructionStream.valid := validReg && !pcChange
   val outReg = Reg(new InstructionPackage)
   io.instructionStream.bits := outReg
 
-  when(io.instructionStream.ready || !validReg) {
-    validReg := !programEnd
+  when(!hasToStall) {
+    validReg := !insertBubble
     outReg.expand(
       _.instruction := instruction,
       _.pc := pc,

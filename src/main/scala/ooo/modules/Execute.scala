@@ -87,7 +87,7 @@ class Execute()(implicit c: Configuration) extends Module {
 
   io.Instruction.ready := ready
 
-  ready := !valid || (valid && (!sendToMemQueue || (sendToMemQueue && (!memPackageValid || (memPackageValid && io.MemPackage.ready)))))
+  ready := !valid || (valid && Mux(sendToMemQueue, Mux(memPackageValid, io.MemPackage.ready, 1.B), Mux(eventValid, io.eventBus.ready, 1.B)))
 
 }
 
