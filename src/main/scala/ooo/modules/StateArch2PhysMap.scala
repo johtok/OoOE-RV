@@ -15,8 +15,8 @@ class StateArch2PhysMap(implicit c: Configuration) extends Module {
     val write = new Arch2PhysMap.WritePort
 
     val allocationCheck = new Bundle {
-      val newPid = Input(PhysRegisterId())
-      val isAllocated = Output(Bool())
+      val pr = Input(Vec(2, PhysRegisterId()))
+      val isAllocated = Output(Vec(2, Bool()))
     }
   })
 
@@ -30,6 +30,6 @@ class StateArch2PhysMap(implicit c: Configuration) extends Module {
 
   when(io.write.write) { rf(io.write.rd) := io.write.prd }
 
-  io.allocationCheck.isAllocated := rf.map(_ === io.allocationCheck.newPid).toVec.reduceTree(_ || _)
+  io.allocationCheck.isAllocated := io.allocationCheck.pr.map(pr => rf.map(_ === pr).toVec.reduceTree(_ || _))
 
 }

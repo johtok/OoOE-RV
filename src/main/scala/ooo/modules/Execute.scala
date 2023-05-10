@@ -5,6 +5,7 @@ import ooo.Types._
 import ooo.Configuration
 import chisel3.util._
 import ooo.Types.EventType._
+import ooo.Types.Opcode.branch
 import ooo.modules.Execution.ALU
 import ooo.util.{BundleExpander, LookUp}
 
@@ -29,14 +30,14 @@ class Execute()(implicit c: Configuration) extends Module {
   )
   val b = LookUp(opcode, immediate,
     Opcode.register -> operands(1),
-    Opcode.branch -> operands(1),
-    Opcode.jalr -> 4.U,
-    Opcode.jal -> 4.U
+    Opcode.branch -> operands(1)
   )
 
   // comp indicates whether branch condition was true
 
   val fn = LookUp(opcode, func,
+    Opcode.immediate -> func(2,0),
+    Opcode.branch -> func(2,0),
     Opcode.load -> 0.U,
     Opcode.store -> 0.U,
     Opcode.auipc -> 0.U,
@@ -76,13 +77,19 @@ class Execute()(implicit c: Configuration) extends Module {
     _.bits := event
   )
 
+  val branchMisprediction = comp =/= (branchPrediction === BranchPrediction.Taken)
+  val branchMispredictionRecoveryPC = Mux(io.Instruction.bits.branchPrediction === BranchPrediction.Taken, pc + 4.U, res)
+
+  val target = Mux(opcode.isOneOf(Opcode.branch), branchMispredictionRecoveryPC, res)
+
   event.expand(
     _.eventType := eventType,
     _.pr := prd,
-    _.writeBackValue := res,
+    _.writeBackValue := Mux(opcode.isOneOf(Opcode.jal, Opcode.jalr), pc + 4.U, res),
     _.pc := pc,
+    _.target := target,
     _.snapshotId := snapshotId,
-    _.misprediction := comp && !(branchPrediction === BranchPrediction.Taken)
+    _.misprediction := branchMisprediction
   )
 
   io.Instruction.ready := ready

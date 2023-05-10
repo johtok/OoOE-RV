@@ -6,9 +6,24 @@ import ooo.Configuration
 import ooo.Types.EventType.CompletionWithValue
 import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{ArchRegisterId, Event, EventType, Immediate, InstructionPackage, InstructionType, IssuePackage, Opcode, PhysRegisterId}
-import ooo.modules.Retirement.StateUpdate
 import ooo.util.{BundleExpander, LookUp, PairConnector, SeqDataExtension}
 import ooo.Types.EventType._
+import ooo.Types.Opcode.{branch, store, system}
+
+object Decoder {
+
+  class RetirementPort(implicit c: Configuration) extends Bundle {
+    val stateUpdate = Flipped(Valid(new Bundle {
+      val pr = PhysRegisterId()
+      val rd = ArchRegisterId()
+    }))
+    val allocationCheck = new Bundle {
+      val pr = Input(PhysRegisterId())
+      val isAllocated = Output(Bool())
+    }
+  }
+
+}
 
 
 class Decoder()(implicit c: Configuration) extends Module {
@@ -21,18 +36,24 @@ class Decoder()(implicit c: Configuration) extends Module {
       val physRegisterId = Flipped(new IdAllocator.AllocationPort(c.physRegisterIdWidth))
       val snapshotId = Flipped(new IdAllocator.AllocationPort(c.snapshotIdWidth))
     }
-    val stateUpdate = Flipped(Valid(new StateUpdate))
+    val retirementPort = new Decoder.RetirementPort
     val robPort = Flipped(new ReorderBuffer.DecoderPort)
     val eventBus = Flipped(Valid(new Event))
   })
 
-  val debug = if(c.simulation) Some(IO(Output(Vec(32, PhysRegisterId())))) else None
+  val debug = if(c.simulation) Some(IO(Output(new Bundle {
+    val state = Vec(32, PhysRegisterId())
+    val spec = Vec(32, PhysRegisterId())
+  }))) else None
 
   val mapSelector = Module(new MapSelector)
   val specArch2Phys = Module(new SpeculativeArch2PhysMap)
   val stateArch2Phys = Module(new StateArch2PhysMap)
 
-  if(c.simulation) debug.get := stateArch2Phys.debug.get
+  if(c.simulation) {
+    debug.get.state := stateArch2Phys.debug.get
+    debug.get.spec := specArch2Phys.debug.get
+  }
 
 
   val instruction = io.instructionStream.bits.instruction
@@ -62,21 +83,23 @@ class Decoder()(implicit c: Configuration) extends Module {
   stateArch2Phys.io.read.rs := rs
 
   specArch2Phys.io.write.expand(
-    _.prd := Mux(rd === 0.U, c.initialStateMap.head.U, io.allocationPorts.physRegisterId.id),
+    _.prd := io.allocationPorts.physRegisterId.id,
     _.rd := rd,
-    _.write := allowedToProgress
+    _.write := allowedToProgress && !opcode.isOneOf(branch,store,system) && rd =/= 0.U
   )
 
   stateArch2Phys.io.write.expand(
-    _.prd := io.stateUpdate.bits.pr,
-    _.rd := io.stateUpdate.bits.rd,
-    _.write := io.stateUpdate.valid && io.stateUpdate.bits.rd =/= 0.U
+    _.prd := io.retirementPort.stateUpdate.bits.pr,
+    _.rd := io.retirementPort.stateUpdate.bits.rd,
+    _.write := io.retirementPort.stateUpdate.valid && io.retirementPort.stateUpdate.bits.rd =/= 0.U
   )
   io.robPort.allocSetup.expand(
     _.update := allowedToProgress,
     _.prd := io.allocationPorts.physRegisterId.id,
-    _.rd := rd
+    _.rd := rd,
+    _.hasWriteBack := !opcode.isOneOf(branch,store,system)
   )
+  io.retirementPort.allocationCheck.isAllocated := stateArch2Phys.io.allocationCheck.isAllocated(1)
 
   val prs = mapSelector.io.read.useSpec
     .zip(stateArch2Phys.io.read.prs)
@@ -87,8 +110,8 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   io.robPort.prs.zip(Mux(hasToStall, prsReg, prs.toVec)).connectPairs()
 
-  stateArch2Phys.io.allocationCheck.newPid := io.allocationPorts.physRegisterId.id
-  val doubleAllocation = stateArch2Phys.io.allocationCheck.isAllocated
+  stateArch2Phys.io.allocationCheck.pr := VecInit(io.allocationPorts.physRegisterId.id, io.retirementPort.allocationCheck.pr)
+  val doubleAllocation = stateArch2Phys.io.allocationCheck.isAllocated(0)
 
   io.allocationPorts.physRegisterId.take := Mux(doubleAllocation, 1.B, allowedToProgress) // when double allocation we want to take the id no matter what
   io.allocationPorts.snapshotId.take := usesSnapshots && allowedToProgress
@@ -107,7 +130,7 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   specArch2Phys.io.restore.expand(
     _.snapshotId := io.eventBus.bits.snapshotId,
-    _.restoreSnapshot := io.eventBus.valid && io.eventBus.bits.eventType.isOneOf(EventType.Branch, EventType.Jump)
+    _.restoreSnapshot := io.eventBus.valid && ((io.eventBus.bits.eventType.isOneOf(EventType.Branch) && io.eventBus.bits.misprediction) || io.eventBus.bits.eventType.isOneOf(EventType.Jump))
   )
 
   mapSelector.io.clear := io.eventBus.valid && io.eventBus.bits.eventType === EventType.Exception
@@ -146,8 +169,4 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   io.instructionStream.ready := allowedToProgress
   io.issueStream.valid := validReg
-}
-
-object Decoder extends App {
-  emitVerilog(new Decoder()(Configuration.default()))
 }

@@ -45,9 +45,11 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
 
   val validReg = RegInit(0.B)
 
+  dontTouch(io.eventBus.bits.pc)
+
   nextPc := MuxCase(pc + 4.U, Seq(
     programEnd -> pc,
-    pcChange -> io.eventBus.bits.pc,
+    pcChange -> io.eventBus.bits.target,
     !allowedToProgress -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))
@@ -62,13 +64,15 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   io.instructionStream.bits := outReg
 
   when(!hasToStall) {
-    validReg := !insertBubble
+    validReg := !insertBubble && !programEnd
     outReg.expand(
       _.instruction := instruction,
       _.pc := pc,
       _.branchPrediction := prediction
     )
   }
+
+  when(pcChange) { validReg := 0.B }
 
 
 }

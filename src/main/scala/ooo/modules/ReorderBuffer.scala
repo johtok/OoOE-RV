@@ -16,6 +16,7 @@ object ReorderBuffer {
     val allocSetup = Input(new Bundle {
       val prd = PhysRegisterId()
       val rd = ArchRegisterId()
+      val hasWriteBack = Bool()
       val update = Bool()
     })
   }
@@ -24,6 +25,7 @@ object ReorderBuffer {
     val pr = Input(PhysRegisterId())
     val ready = Output(Bool())
     val hadException = Output(Bool())
+    val hasWriteBack = Output(Bool())
     val rd = Output(ArchRegisterId())
   }
 }
@@ -47,6 +49,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   val dataMem = SyncReadMem(c.reorderBufferSize, Word())
   val readyMem = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val exceptions = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
+  val withWriteBack = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val destMem = SyncReadMem(c.reorderBufferSize, ArchRegisterId())
 
   val dataShadow = if(c.simulation) Some(RegInit(Seq.fill(c.reorderBufferSize)(0.U(32.W)).toVec)) else None
@@ -68,12 +71,18 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
     debug.get := dataShadow.get
   }
 
-  io.decoderPort.ready := io.decoderPort.prs.map(pr => RegNext(readyMem(pr)))
+
+  io.decoderPort.ready := io.decoderPort.prs.map { pr =>
+    val forwardNow = pr === io.eventBus.bits.pr && io.eventBus.valid
+    val forwardDuringRead = RegNext(forwardNow, 0.B)
+    Mux(forwardNow || forwardDuringRead, 1.B, RegNext(readyMem(pr)))
+  }
 
   val markAsReady = io.eventBus.valid
 
   when(io.decoderPort.allocSetup.update) {
     readyMem(io.decoderPort.allocSetup.prd) := 0.B
+    withWriteBack(io.decoderPort.allocSetup.prd) := io.decoderPort.allocSetup.hasWriteBack
     destMem.write(io.decoderPort.allocSetup.prd, io.decoderPort.allocSetup.rd)
   }
 
@@ -82,8 +91,9 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   }
 
   io.retirementPort.rd := destMem.read(io.retirementPort.pr)
-  io.retirementPort.ready := RegNext(readyMem(io.retirementPort.pr))
+  io.retirementPort.ready := Mux(RegNext(io.retirementPort.pr === io.decoderPort.allocSetup.prd && io.decoderPort.allocSetup.update, 0.B), 0.B, RegNext(readyMem(io.retirementPort.pr)))
   io.retirementPort.hadException := RegNext(exceptions(io.retirementPort.pr))
+  io.retirementPort.hasWriteBack := RegNext(withWriteBack(io.retirementPort.pr))
 
 }
 

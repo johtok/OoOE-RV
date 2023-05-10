@@ -66,6 +66,7 @@ object Types {
     val pc = Word()
     val snapshotId = SnapshotId()
     val misprediction = Bool()
+    val target = Word()
   }
 
   class MemPackage(implicit c: Configuration) extends Bundle {

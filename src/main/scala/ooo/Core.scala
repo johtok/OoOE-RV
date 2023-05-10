@@ -25,6 +25,7 @@ class Core(program: Program, config: Configuration) extends Module {
 
   val debug = if(config.simulation) Some(IO(Output(new Bundle {
     val regfile = Vec(32, Word())
+    val specfile = Vec(32, Word())
     val ecall = Bool()
   }))) else None
 
@@ -58,7 +59,7 @@ class Core(program: Program, config: Configuration) extends Module {
       _.physRegisterId <> Alloc.physRegId.io.alloc,
       _.snapshotId <> Alloc.snapshotId.io.alloc,
     ),
-    _.stateUpdate <> Stage.retirement.io.stateUpdate,
+    _.retirementPort <> Stage.retirement.io.decoderPort,
     _.eventBus <> Stage.eventArbiter.io.EventOut
   )
 
@@ -114,7 +115,10 @@ class Core(program: Program, config: Configuration) extends Module {
   )
 
   if(c.simulation) {
-    debug.get.regfile := Stage.decoder.debug.get.map { id =>
+    debug.get.regfile := Stage.decoder.debug.get.state.map { id =>
+      rob.debug.get.apply(id)
+    }.toVec
+    debug.get.specfile := Stage.decoder.debug.get.spec.map { id =>
       rob.debug.get.apply(id)
     }.toVec
     debug.get.ecall := Stage.retirement.debug.get.exception
