@@ -151,6 +151,8 @@ class MemQueue()(implicit c: Configuration) extends Module {
             when(MemQueue(i).In.isWrite){ // Write
               io.MemPort.request.bits.isWrite := true.B
 
+              io.EventOut.bits.pr := MemQueue(i).In.prd
+
               io.EventOut.valid := true.B
               io.EventOut.bits.eventType := Completion
 
