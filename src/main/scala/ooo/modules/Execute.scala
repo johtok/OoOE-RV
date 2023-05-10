@@ -61,7 +61,11 @@ class Execute()(implicit c: Configuration) extends Module {
     _.isWrite := opcode === Opcode.store,
     _.func := func(2, 0),
     _.prd := prd,
-    _.Address := res
+    _.Address := res,
+    _.writeData := LookUp(func(2,0), operands(1),
+      "b000".U -> operands(1)(7,0),
+      "b001".U -> operands(1)(15,0)
+    )
   )
 
   val eventType = MuxCase(CompletionWithValue, Seq(

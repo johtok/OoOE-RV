@@ -73,7 +73,7 @@ object Types {
     val isWrite = Bool() // 0 = read, 1 = write
     val func = UInt(3.W)
     val prd = PhysRegisterId()
-    
+    val writeData = Word()
     val Address = Word()
 
     //val storeId = StoreId()

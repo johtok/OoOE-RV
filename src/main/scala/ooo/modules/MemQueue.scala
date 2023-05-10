@@ -142,7 +142,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
           //io.MemPort.request.valid := true.B
 
           io.MemPort.request.bits.Address := MemQueue(i).In.Address
-          io.MemPort.request.bits.WriteData := MemQueue(i).In.prd
+          io.MemPort.request.bits.WriteData := MemQueue(i).In.writeData
 
           when(io.MemPort.request.ready){
 

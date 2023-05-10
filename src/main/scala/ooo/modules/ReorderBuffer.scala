@@ -47,7 +47,7 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   val debug = if(c.simulation) Some(IO(Output(Vec(c.reorderBufferSize, Word())))) else None
 
   val dataMem = SyncReadMem(c.reorderBufferSize, Word())
-  val readyMem = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
+  val readyMem = RegInit(Seq.fill(c.reorderBufferSize)(1.B).toVec)
   val exceptions = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val withWriteBack = RegInit(Seq.fill(c.reorderBufferSize)(0.B).toVec)
   val destMem = SyncReadMem(c.reorderBufferSize, ArchRegisterId())
