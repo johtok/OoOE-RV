@@ -26,11 +26,14 @@ class DataMem()(implicit c: Configuration) extends Module {
   io.MemPort.request.ready := true.B
   io.MemPort.response.valid := false.B
 
-  val mem = SyncReadMem (1024 , Word())
+  val mem = SyncReadMem (4*1024 , Byte())
 
   val ReadReg = RegInit(0.B)
 
-  io.MemPort.response.bits.readData := mem.read(io.MemPort.request.bits.Address)
+  val addresses = Seq.tabulate(4)(i => io.MemPort.request.bits.Address + i.U)
+  val readBytes = addresses.map(mem.read(_))
+
+  io.MemPort.response.bits.readData := readBytes(3) ## readBytes(2) ## readBytes(1) ## readBytes(0)
 
   when(io.MemPort.request.valid){
     when(io.MemPort.request.bits.isWrite){

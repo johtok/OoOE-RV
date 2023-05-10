@@ -3,7 +3,7 @@ package ooo.modules
 import chisel3._
 import chisel3.experimental.BundleLiterals.AddBundleLiteralConstructor
 import chisel3.internal.firrtl.Width
-import ooo.util.SeqDataExtension
+import ooo.util.{LookUp, SeqDataExtension}
 //import chisel3.util.{Fill, log2Ceil, MixedVec}
 import ooo.Types._
 import ooo.Types.EventType._
@@ -130,6 +130,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   val ReadDataExpect = RegInit(0.B)
   //val ReadDataID = RegInit(PhysRegisterId())
   val ReadDataID = Reg(PhysRegisterId())
+  val ReadType = Reg(UInt(3.W))
 
 
 
@@ -163,6 +164,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
               //ReadData.id := MemQueue(i).In.prd
               ReadDataExpect := true.B // Indicates that the system should expect readdata soon
               ReadDataID := MemQueue(i).In.prd
+              ReadType := MemQueue(i).In.func
             }
 
             MemQueue(i).empty := true.B
@@ -187,7 +189,13 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
       //io.EventOut.bits.pr := ReadData.id
       io.EventOut.bits.pr := ReadDataID
-      io.EventOut.bits.writeBackValue := io.MemPort.response.bits.readData
+      val readData = io.MemPort.response.bits.readData
+      io.EventOut.bits.writeBackValue := LookUp(ReadType, readData,
+        "b000".U -> Fill(24, readData(7)) ## readData(7,0),
+        "b001".U -> Fill(16, readData(15)) ## readData(15,0),
+        "b100".U -> readData(7,0),
+        "b101".U -> readData(15,0)
+      )
       io.EventOut.valid := true.B
 
       io.EventOut.bits.eventType := CompletionWithValue
