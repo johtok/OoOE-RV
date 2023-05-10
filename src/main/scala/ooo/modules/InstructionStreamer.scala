@@ -48,8 +48,8 @@ class InstructionStreamer(program: Program)(implicit c: Configuration) extends M
   dontTouch(io.eventBus.bits.pc)
 
   nextPc := MuxCase(pc + 4.U, Seq(
-    programEnd -> pc,
     pcChange -> io.eventBus.bits.target,
+    programEnd -> pc,
     !allowedToProgress -> pc,
     (isJal || (isBranch && prediction === BranchPrediction.Taken)) -> (pc.asSInt + imm).asUInt
   ))

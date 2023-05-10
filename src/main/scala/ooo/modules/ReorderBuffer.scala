@@ -80,15 +80,17 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
   val markAsReady = io.eventBus.valid
 
+  when(markAsReady) {
+    readyMem(io.eventBus.bits.pr) := 1.B
+  }
+
   when(io.decoderPort.allocSetup.update) {
     readyMem(io.decoderPort.allocSetup.prd) := 0.B
     withWriteBack(io.decoderPort.allocSetup.prd) := io.decoderPort.allocSetup.hasWriteBack
     destMem.write(io.decoderPort.allocSetup.prd, io.decoderPort.allocSetup.rd)
   }
 
-  when(markAsReady) {
-    readyMem(io.eventBus.bits.pr) := 1.B
-  }
+
 
   io.retirementPort.rd := destMem.read(io.retirementPort.pr)
   io.retirementPort.ready := Mux(RegNext(io.retirementPort.pr === io.decoderPort.allocSetup.prd && io.decoderPort.allocSetup.update, 0.B), 0.B, RegNext(readyMem(io.retirementPort.pr)))

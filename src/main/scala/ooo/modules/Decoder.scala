@@ -136,7 +136,7 @@ class Decoder()(implicit c: Configuration) extends Module {
   mapSelector.io.clear := io.eventBus.valid && io.eventBus.bits.eventType === EventType.Exception
   mapSelector.io.update.expand(
     _.rd := rd,
-    _.markAsSpec := allowedToProgress
+    _.markAsSpec := allowedToProgress && rd =/= 0.U
   )
 
   val outReg = Reg(chiselTypeOf(io.issueStream.bits))
