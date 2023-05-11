@@ -211,6 +211,3 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   
 }
-
-
-object penis extends App { emitVerilog(new MemQueue()(Configuration.random()))}

@@ -187,6 +187,3 @@ class IssueElement()(implicit c: Configuration) extends Module{
   io.Port.Issue.bits := valueReg
 
 }
-
-
-object issuepenis extends App { emitVerilog(new IssueQueue()(Configuration.random()))}

@@ -62,5 +62,3 @@ class DataMem(init: Seq[BigInt])(implicit c: Configuration) extends Module {
   }
   
 }
-
-// object Datapenis extends App { emitVerilog(new DataMem()(Configuration.random()))}
