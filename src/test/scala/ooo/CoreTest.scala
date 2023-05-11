@@ -9,15 +9,15 @@ import ooo.util.Program._
 class CoreTest extends AnyFlatSpec with ChiselScalatestTester {
 
   val path = "src/test/programs"
-  getBinFiles(path).filter(_ == "call.bin").foreach { bin =>
+  getBinFiles(path).filter(_ == "string.bin" || true).foreach { bin =>
     val program = Program.load(s"$path/$bin")
     "Core" should s"execute $bin correctly" in {
       test(new Core(program, Configuration.default().copy(issueQueueSize = 2, simulation = true))).withAnnotations(Seq(VerilatorBackendAnnotation,WriteVcdAnnotation)) { dut =>
-        print(bin)
+        println(s"$bin...")
         while(!dut.debug.get.ecall.peekBoolean()) dut.clock.step()
         dut.clock.step()
         dut.debug.get.regfile.zip(program.result).foreach { case (reg, value) => reg.expect(value.U) }
-        println(s" ✓")
+        println(s"$bin ✓")
       }
     }
   }

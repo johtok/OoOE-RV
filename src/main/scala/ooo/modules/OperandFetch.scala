@@ -37,7 +37,7 @@ class OperandFetch()(implicit c: Configuration) extends Module {
 
   //io.ROBPort.Address := io.In.bits.prs.id
 
-  val hasToStall = !io.Issue.ready
+  val hasToStall = !io.Issue.ready && delayReg
 
   io.ROBPort.Address := Mux(hasToStall, valueReg.prs.map(_.id).toVec, io.In.bits.prs.map(_.id).toVec)
 

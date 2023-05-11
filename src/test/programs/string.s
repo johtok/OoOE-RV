@@ -1,5 +1,6 @@
-	.text
-	la a0, data
+
+.text
+	li a0, 0xF0
 	lb x1, 0(a0)
 	addi a0, a0, 1
 	lb x2, 0(a0)
@@ -60,5 +61,5 @@
 	li a7, 10
 	ecall
 
-data:
-	.string "Is it me you're looking for?"
+message:
+	.asciz "Is it me you're looking for?"

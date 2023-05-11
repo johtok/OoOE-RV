@@ -18,7 +18,8 @@ class Execute()(implicit c: Configuration) extends Module {
 
   // TODO: kill instructions
 
-  val ready = Wire(Bool())
+  val hasToStall = WireDefault(0.B)
+  val insertBubble = WireDefault(0.B)
 
   val valid = io.Instruction.valid
   val instruction = io.Instruction.bits
@@ -50,23 +51,14 @@ class Execute()(implicit c: Configuration) extends Module {
 
   val sendToMemQueue = opcode.isOneOf(Opcode.load, Opcode.store)
 
-  val memPackageValid = RegNext(valid && sendToMemQueue, 0.B)
+  val memPackageValid = RegInit(0.B)
   val memPackage = Reg(chiselTypeOf(io.MemPackage.bits))
   io.MemPackage.expand(
     _.valid := memPackageValid,
     _.bits := memPackage
   )
 
-  memPackage.expand(
-    _.isWrite := opcode === Opcode.store,
-    _.func := func(2, 0),
-    _.prd := prd,
-    _.Address := res,
-    _.writeData := LookUp(func(2,0), operands(1),
-      "b000".U -> operands(1)(7,0),
-      "b001".U -> operands(1)(15,0)
-    )
-  )
+
 
   val eventType = MuxCase(CompletionWithValue, Seq(
     (opcode === Opcode.branch) -> Branch,
@@ -74,7 +66,7 @@ class Execute()(implicit c: Configuration) extends Module {
     (opcode === Opcode.system) -> Exception
   ))
 
-  val eventValid = RegNext(valid && !sendToMemQueue)
+  val eventValid = RegInit(0.B)
   val event = Reg(chiselTypeOf(io.eventBus.bits))
   io.eventBus.expand(
     _.valid := eventValid,
@@ -86,19 +78,36 @@ class Execute()(implicit c: Configuration) extends Module {
 
   val target = Mux(opcode.isOneOf(Opcode.branch), branchMispredictionRecoveryPC, res)
 
-  event.expand(
-    _.eventType := eventType,
-    _.pr := prd,
-    _.writeBackValue := Mux(opcode.isOneOf(Opcode.jal, Opcode.jalr), pc + 4.U, res),
-    _.pc := pc,
-    _.target := target,
-    _.snapshotId := snapshotId,
-    _.misprediction := branchMisprediction
-  )
+  insertBubble := !valid
+  hasToStall := Mux(RegNext(sendToMemQueue), memPackageValid && !io.MemPackage.ready, eventValid && !io.eventBus.ready)
 
-  io.Instruction.ready := ready
+  when(!hasToStall) {
 
-  ready := !valid || (valid && Mux(sendToMemQueue, Mux(memPackageValid, io.MemPackage.ready, 1.B), Mux(eventValid, io.eventBus.ready, 1.B)))
+    memPackageValid := Mux(insertBubble, 0.B, valid && sendToMemQueue)
+    eventValid := Mux(insertBubble, 0.B, valid && !sendToMemQueue)
 
+    event.expand(
+      _.eventType := eventType,
+      _.pr := prd,
+      _.writeBackValue := Mux(opcode.isOneOf(Opcode.jal, Opcode.jalr), pc + 4.U, res),
+      _.pc := pc,
+      _.target := target,
+      _.snapshotId := snapshotId,
+      _.misprediction := branchMisprediction
+    )
+    memPackage.expand(
+      _.isWrite := opcode === Opcode.store,
+      _.func := func(2, 0),
+      _.prd := prd,
+      _.Address := res,
+      _.writeData := LookUp(func(2, 0), operands(1),
+        "b000".U -> operands(1)(7, 0),
+        "b001".U -> operands(1)(15, 0)
+      )
+    )
+  }
+
+
+  io.Instruction.ready := !hasToStall
 }
 
