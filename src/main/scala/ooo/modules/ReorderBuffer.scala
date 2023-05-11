@@ -73,9 +73,9 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
 
 
   io.decoderPort.ready := io.decoderPort.prs.map { pr =>
-    val forwardNow = pr === io.eventBus.bits.pr && io.eventBus.valid
-    val forwardDuringRead = RegNext(forwardNow, 0.B)
-    Mux(forwardNow || forwardDuringRead, 1.B, RegNext(readyMem(pr)))
+    val forwardNow = RegNext(pr) === io.eventBus.bits.pr && io.eventBus.valid
+    val forwardDuringRead = RegNext(pr === io.eventBus.bits.pr && io.eventBus.valid, 0.B)
+    Mux(forwardDuringRead || forwardNow, 1.B, RegNext(readyMem(pr)))
   }
 
   val markAsReady = io.eventBus.valid

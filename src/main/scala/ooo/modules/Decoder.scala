@@ -152,7 +152,7 @@ class Decoder()(implicit c: Configuration) extends Module {
 
     outReg.expand(
       _.opcode := opcode,
-      _.func := Mux(opcode.isOneOf(Opcode.immediate), 0.U, funct7(6)) ## funct3,
+      _.func := funct7(5) ## funct3,
       _.prd := io.allocationPorts.physRegisterId.id,
       _.immediate := immediate.asUInt,
       _.pc := io.instructionStream.bits.pc,
