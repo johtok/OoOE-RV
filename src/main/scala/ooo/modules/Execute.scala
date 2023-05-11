@@ -37,7 +37,7 @@ class Execute()(implicit c: Configuration) extends Module {
   // comp indicates whether branch condition was true
 
   val fn = LookUp(opcode, func,
-    Opcode.immediate -> func(2,0),
+    Opcode.immediate -> Mux(func(2,0) === "b101".U, func, func(2,0)),
     Opcode.branch -> func(2,0),
     Opcode.load -> 0.U,
     Opcode.store -> 0.U,
