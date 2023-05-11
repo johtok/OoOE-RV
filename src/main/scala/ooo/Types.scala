@@ -102,6 +102,7 @@ object Types {
       val Address = Word()
       val WriteData = Word()
       val isWrite = Bool()
+      val mask = Vec(4, Bool())
     })
     val response = Flipped(Decoupled(new Bundle {
       val readData = Word()

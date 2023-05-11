@@ -49,6 +49,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   io.MemPort.request.bits.isWrite := false.B
   io.MemPort.request.bits.WriteData := 0.U
   io.MemPort.request.bits.Address := 0.U
+  io.MemPort.request.bits.mask := DontCare
 
 
   io.MemPort.request.valid := false.B
@@ -144,6 +145,10 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
           io.MemPort.request.bits.Address := MemQueue(i).In.Address
           io.MemPort.request.bits.WriteData := MemQueue(i).In.writeData
+          io.MemPort.request.bits.mask := LookUp(MemQueue(i).In.func, Seq.fill(4)(1.B).toVec,
+            "b000".U -> VecInit(1.B, 0.B, 0.B, 0.B),
+            "b001".U -> VecInit(1.B, 1.B, 0.B, 0.B)
+          )
 
           when(io.MemPort.request.ready){
 

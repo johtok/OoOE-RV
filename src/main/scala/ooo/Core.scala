@@ -40,7 +40,7 @@ class Core(program: Program, config: Configuration) extends Module {
     val retirement = Module(new Retirement)
     val memQueue = Module(new MemQueue)
     val eventArbiter = Module(new EventArbiter)
-    val DataMem = Module(new DataMem)
+    val DataMem = Module(new DataMem(program.getBytes.map(_.litValue)))
   }
 
   object Alloc {
