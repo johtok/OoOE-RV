@@ -32,10 +32,10 @@ package object ooo {
     }
     def default(): Configuration = {
       Configuration(
-        128,
-        16,
-        8,
-        8,
+        64,
+        4,
+        4,
+        4,
         Seq.range(10,42)
       )
     }
