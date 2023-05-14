@@ -15,6 +15,7 @@ class Retirement()(implicit c: Configuration) extends Module {
     val dealloc = Flipped(new IdAllocator.DeallocationPort(c.physRegisterIdWidth))
     val snapDealloc = Flipped(new IdAllocator.DeallocationPort(c.snapshotIdWidth))
     val allocPushBack = Flipped(new IdAllocator.PushBackPort(c.physRegisterIdWidth))
+    val snapPushBack = Flipped(new IdAllocator.PushBackPort(c.snapshotIdWidth))
     val decoderPort = Flipped(new Decoder.RetirementPort)
     val robPort = Flipped(new ReorderBuffer.RetirementPort)
     val eventBus = Flipped(Valid(new Event))
@@ -35,6 +36,10 @@ class Retirement()(implicit c: Configuration) extends Module {
 
   io.allocPushBack.expand(
     _.newHead := io.eventBus.bits.pr + 1.U,
+    _.pushBackHead := shouldJump
+  )
+  io.snapPushBack.expand(
+    _.newHead := io.eventBus.bits.snapshotId + 1.U,
     _.pushBackHead := shouldJump
   )
 
