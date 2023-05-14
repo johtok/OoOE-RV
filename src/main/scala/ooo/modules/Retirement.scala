@@ -9,8 +9,6 @@ import ooo.util.BundleExpander
 
 class Retirement()(implicit c: Configuration) extends Module {
 
-  // TODO: deallocate branches and pushbacks
-
   val io = IO(new Bundle {
     val dealloc = Flipped(new IdAllocator.DeallocationPort(c.physRegisterIdWidth))
     val snapDealloc = Flipped(new IdAllocator.DeallocationPort(c.snapshotIdWidth))

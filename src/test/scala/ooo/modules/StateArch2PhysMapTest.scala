@@ -9,10 +9,12 @@ import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
 import ooo.util._
 
+import ooo.util.TestingUtils._
+
 class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
 
   behavior of "StateArch2PhysMap"
-/*
+
   it should "store the correct mapping" in {
     implicit val c = Configuration.default()
     test(new StateArch2PhysMap()).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
@@ -24,7 +26,7 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
         map(i) = pid.litValue.toInt
         dut.io.write.poke(
           _.rd -> i.U,
-          _.pid -> pid,
+          _.prd -> pid,
           _.write -> 1.B
         )
         dut.clock.step()
@@ -37,8 +39,8 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
           _.rs(1) -> (i+1).U
         )
         dut.io.read.expect(
-          _.pids(0) -> map(i).U,
-          _.pids(1) -> map(i+1).U
+          _.prs(0) -> map(i).U,
+          _.prs(1) -> map(i+1).U
         )
       }
 
@@ -46,7 +48,7 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
   }
 
   it should "mark the correct pids as allocated" in {
-    implicit val c = RandomConfiguration()
+    implicit val c = Configuration.default()
     test(new StateArch2PhysMap()).withAnnotations(Seq(WriteVcdAnnotation)) { dut =>
 
       val map = ArrayBuffer.fill(32)(0)
@@ -56,7 +58,7 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
         map(i) = pid.litValue.toInt
         dut.io.write.poke(
           _.rd -> i.U,
-          _.pid -> pid,
+          _.prd -> pid,
           _.write -> 1.B
         )
         dut.clock.step()
@@ -64,8 +66,8 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
       dut.io.write.write.poke(0.B)
 
       for (i <- 0 until c.reorderBufferSize) {
-        dut.io.allocationCheck.newPid.poke(i.U)
-        dut.io.allocationCheck.isAllocated.expect(
+        dut.io.allocationCheck.pr(0).poke(i.U)
+        dut.io.allocationCheck.isAllocated(0).expect(
           map.contains(i).B
         )
         dut.clock.step()
@@ -74,6 +76,6 @@ class StateArch2PhysMapTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
- */
+
 
 }
