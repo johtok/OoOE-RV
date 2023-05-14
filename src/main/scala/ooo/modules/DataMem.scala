@@ -19,7 +19,7 @@ import ooo.modules.MemQueue.{QueueElementPort}
 
 import ooo.util.BundleExpander
 
-
+// this memory should be used for simulation purposes and not for synthesis
 class DataMem(init: Seq[BigInt])(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val MemPort = Flipped(new MemPort)

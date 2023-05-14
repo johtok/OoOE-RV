@@ -10,10 +10,6 @@ import ooo.Types.Immediate.InstructionFieldExtractor
 import ooo.Types.{BranchPrediction, Event, EventType, InstructionPackage, Opcode, Word}
 import ooo.util.{BundleExpander, Program, SIntExtension, UIntSeqExtension}
 
-import scala.util.Random
-
-
-
 class InstructionStreamer(program: Program)(implicit c: Configuration) extends Module {
 
   val io = IO(new Bundle {

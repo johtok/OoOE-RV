@@ -16,8 +16,6 @@ class Execute()(implicit c: Configuration) extends Module {
     val MemPackage = Decoupled(new MemPackage)
   })
 
-  // TODO: kill instructions
-
   val hasToStall = WireDefault(0.B)
   val insertBubble = WireDefault(0.B)
 

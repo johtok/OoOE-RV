@@ -98,6 +98,3 @@ class ReorderBuffer(implicit c: Configuration) extends Module {
   io.retirementPort.hasWriteBack := RegNext(withWriteBack(io.retirementPort.pr))
 
 }
-
-
-object Test extends App { emitVerilog(new ReorderBuffer()(Configuration.default()))}
