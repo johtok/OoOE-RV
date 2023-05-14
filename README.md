@@ -16,6 +16,8 @@ To generate the chisel code input "sbt run" in the terminal while in the root of
 ## Contents
 The following is the output of the tree command run in a folder in which the provided ZIP file is unzipped:
 
+
+```
 $ tree
 .
 └── OoOE-RV
@@ -130,3 +132,4 @@ $ tree
                         └── TestingUtils.scala
 
 16 directories, 95 files
+```
