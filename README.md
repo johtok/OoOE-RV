@@ -1,8 +1,10 @@
-# RV-OoOE processor
+# OoOE-RV processor
 This is the README for the RISC-V out of order execution (OoOE) processor supporting the RISCVI ISA. 
 
 ## CONTENTS OF THIS FILE
 This file includes:
+- OoOE-RV PROCESSOR - an introduction to the README
+- CONTENTS OF THIS FILE - a table of contents of this OoOE-RV.zip
 - REQUIREMENTS - a list of requirements for being able to reproduce the verilog files necessary for synthesizing this project
 - CHISEL GENEREATED VERILOG CODE - a turtorial to generate verilog code from the chisel files provided in this zip
 - CONTENTS - the contents of this provided zip
@@ -13,7 +15,7 @@ To be able to compile the RICVI OoOE processor openjdk version 8 or 11 has to be
 ## CHISEL GENEREATED VERILOG CODE
 To generate the chisel code input "sbt run" in the terminal while in the root of the folder.
 
-## Contents
+## CONTENTS
 The following is the output of the tree command run in a folder in which the provided ZIP file is unzipped:
 
 
