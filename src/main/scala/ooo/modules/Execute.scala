@@ -7,6 +7,7 @@ import chisel3.util._
 import ooo.Types.EventType._
 import ooo.Types.Opcode.branch
 import ooo.modules.Execution.ALU
+import ooo.modules.IdAllocator.shouldBeKilled
 import ooo.util.{BundleExpander, LookUp}
 
 class Execute()(implicit c: Configuration) extends Module {
@@ -14,6 +15,8 @@ class Execute()(implicit c: Configuration) extends Module {
     val Instruction = Flipped(Decoupled(new ExecutePackage))
     val eventBus = Decoupled(new Event)
     val MemPackage = Decoupled(new MemPackage)
+    val allocationInfo = Flipped(new IdAllocator.AllocatorStatePort(c.physRegisterIdWidth))
+    val eventBusIn = Flipped(Valid(new Event))
   })
 
   val hasToStall = WireDefault(0.B)
@@ -72,9 +75,9 @@ class Execute()(implicit c: Configuration) extends Module {
   )
 
   val branchMisprediction = comp =/= (branchPrediction === BranchPrediction.Taken)
-  val branchMispredictionRecoveryPC = Mux(io.Instruction.bits.branchPrediction === BranchPrediction.Taken, pc + 4.U, res)
+  val branchMispredictionRecoveryPC = Mux(io.Instruction.bits.branchPrediction === BranchPrediction.Taken, pc + 4.U, pc + immediate)
 
-  val target = Mux(opcode.isOneOf(Opcode.branch), branchMispredictionRecoveryPC, res)
+  val target = dontTouch(Mux(opcode.isOneOf(Opcode.branch), branchMispredictionRecoveryPC, res))
 
   insertBubble := !valid
   hasToStall := Mux(RegNext(sendToMemQueue), memPackageValid && !io.MemPackage.ready, eventValid && !io.eventBus.ready)
@@ -98,6 +101,7 @@ class Execute()(implicit c: Configuration) extends Module {
       _.func := func(2, 0),
       _.prd := prd,
       _.Address := res,
+      _.pc := pc,
       _.writeData := LookUp(func(2, 0), operands(1),
         "b000".U -> operands(1)(7, 0),
         "b001".U -> operands(1)(15, 0)
@@ -107,5 +111,14 @@ class Execute()(implicit c: Configuration) extends Module {
 
 
   io.Instruction.ready := !hasToStall
+
+  val allocatorPushBack = io.eventBusIn.valid && ((io.eventBusIn.bits.eventType.isOneOf(EventType.Branch) && io.eventBusIn.bits.misprediction) || io.eventBusIn.bits.eventType.isOneOf(EventType.Jump))
+  val kill = shouldBeKilled(event.pr, io.eventBusIn.bits.pr, io.allocationInfo.oldest, io.allocationInfo.youngest, io.allocationInfo.wrapped)
+  when(allocatorPushBack && kill) {
+    memPackageValid := 0.B
+    io.MemPackage.valid := 0.B
+    io.Instruction.ready := 0.B
+  }
+
 }
 

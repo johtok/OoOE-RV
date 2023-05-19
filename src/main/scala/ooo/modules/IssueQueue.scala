@@ -100,18 +100,19 @@ class IssueQueue()(implicit c: Configuration) extends Module {
 
 
 
-  val AgeVec = VecInit(Seq.tabulate(positions)(n => QueueVec(n).Age))
+  val AgeVec = Seq.tabulate(positions)(n => QueueVec(n).Age -> QueueVec(n).IssueReady)
 
   val scalaVector = AgeVec.zipWithIndex
-  .map ((x) => MixedVecInit (x._1 , x._2.U(8.W)))
+  .map { case ((age, ready), i) => MixedVecInit (age, ready, i.U(8.W)) }
   val resFun2 = VecInit ( scalaVector )
-  . reduceTree ((x, y) => Mux(x(0) >= y(0) , x, y))
+  . reduceTree ((x, y) => Mux(x(0) >= y(0) && x(1).asBool, x, y))
   val maxVal = resFun2 (0)
-  val maxIdx = resFun2 (1)
+  val maxIdx = resFun2 (2)
+  val maxReady = resFun2 (1)
 
   io.Issue.bits <> QueueVec(maxIdx).Issue.bits
 
-  when(io.Issue.ready && (maxVal > 0.U)){
+  when(io.Issue.ready && (maxVal > 0.U) && maxReady.asBool){
     QueueVec(maxIdx).Issue.ready := true.B
     io.Issue.valid := true.B
   }
@@ -145,8 +146,9 @@ class IssueElement()(implicit c: Configuration) extends Module{
     }
 
     // Branch / Jump kill eventBus
-
-    when(io.Port.event.valid && ((io.Port.event.bits.eventType.isOneOf(EventType.Branch) && io.Port.event.bits.misprediction) || io.Port.event.bits.eventType.isOneOf(EventType.Jump) )  && shouldBeKilled(valueReg.prd, io.Port.event.bits.pr, io.Port.StatePort.oldest, io.Port.StatePort.youngest, io.Port.StatePort.wrapped)){
+    val allocatorPushBack = io.Port.event.valid && ((io.Port.event.bits.eventType.isOneOf(EventType.Branch) && io.Port.event.bits.misprediction) || io.Port.event.bits.eventType.isOneOf(EventType.Jump) )
+    val kill = shouldBeKilled(valueReg.prd, io.Port.event.bits.pr, io.Port.StatePort.oldest, io.Port.StatePort.youngest, io.Port.StatePort.wrapped)
+    when(allocatorPushBack && kill){
       valueReg.prs(0).ready := false.B
       valueReg.prs(1).ready := false.B
 
@@ -159,7 +161,7 @@ class IssueElement()(implicit c: Configuration) extends Module{
 
 
   when(valueReg.prs(0).ready && valueReg.prs(1).ready && !((valueReg.opcode === Opcode.load || valueReg.opcode === Opcode.store) && io.Port.MemQueueFull)){
-    io.Port.IssueReady := true.B
+    io.Port.IssueReady := !emptyReg
     io.Port.Age := AgeReg
 
     when(io.Port.Issue.ready){

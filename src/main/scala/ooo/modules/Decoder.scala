@@ -168,5 +168,5 @@ class Decoder()(implicit c: Configuration) extends Module {
   io.issueStream.bits.prs(1).ready := Mux(RegNext(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 0.B), 1.B, !useSpecMapReg(1) || (useSpecMapReg(1) && io.robPort.ready(1)))
 
   io.instructionStream.ready := allowedToProgress
-  io.issueStream.valid := validReg
+  io.issueStream.valid := validReg && !(io.eventBus.valid && ((io.eventBus.bits.eventType.isOneOf(EventType.Branch) && io.eventBus.bits.misprediction) || io.eventBus.bits.eventType.isOneOf(EventType.Jump)))
 }

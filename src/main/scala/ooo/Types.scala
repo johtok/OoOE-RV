@@ -75,7 +75,7 @@ object Types {
     val prd = PhysRegisterId()
     val writeData = Word()
     val Address = Word()
-
+    val pc = Word()
     //val storeId = StoreId()
   }
 

@@ -158,7 +158,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
               io.MemPort.request.bits.isWrite := true.B
 
               io.EventOut.bits.pr := MemQueue(i).In.prd
-
+              io.EventOut.bits.pc := MemQueue(i).In.pc
               io.EventOut.valid := true.B
               io.EventOut.bits.eventType := Completion
 

@@ -20,7 +20,7 @@ import ooo.modules.MemQueue.{QueueElementPort}
 import ooo.util.BundleExpander
 
 // this memory should be used for simulation purposes and not for synthesis
-class DataMem(init: Seq[BigInt])(implicit c: Configuration) extends Module {
+class DataMem(size: Int, init: Seq[BigInt])(implicit c: Configuration) extends Module {
   val io = IO(new Bundle {
     val MemPort = Flipped(new MemPort)
   })
@@ -28,15 +28,17 @@ class DataMem(init: Seq[BigInt])(implicit c: Configuration) extends Module {
   io.MemPort.request.ready := true.B
   io.MemPort.response.valid := false.B
 
-  val mem = SyncReadMem (4*1024 , Byte())
+  val mem = SyncReadMem (size , Byte())
 
   annotate(new ChiselAnnotation {
-    override def toFirrtl = MemoryArrayInitAnnotation(mem.toTarget, init.padTo(4*1024, BigInt(0)))
+    override def toFirrtl = MemoryArrayInitAnnotation(mem.toTarget, init.padTo(size, BigInt(0)))
   })
 
   val ReadReg = RegInit(0.B)
 
-  val addresses = Seq.tabulate(4)(i => io.MemPort.request.bits.Address + i.U)
+  val address = io.MemPort.request.bits.Address(log2Ceil(size), 0)
+
+  val addresses = Seq.tabulate(4)(i => address + i.U)
   val readBytes = addresses.map(mem.read(_))
 
   io.MemPort.response.bits.readData := readBytes(3) ## readBytes(2) ## readBytes(1) ## readBytes(0)

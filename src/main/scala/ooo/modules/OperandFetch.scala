@@ -5,6 +5,7 @@ import chisel3.internal.firrtl.Width
 import ooo.Types._
 import ooo.Configuration
 import chisel3.util._
+import ooo.modules.IdAllocator.shouldBeKilled
 import ooo.util.{BundleExpander, SeqDataExtension}
 
 
@@ -13,6 +14,8 @@ class OperandFetch()(implicit c: Configuration) extends Module {
     val In = Flipped(Decoupled(new IssuePackage))
     val Issue = Decoupled(new ExecutePackage)
     val ROBPort = new ReadPort
+    val allocationInfo = Flipped(new IdAllocator.AllocatorStatePort(c.physRegisterIdWidth))
+    val eventBus = Flipped(Valid(new Event))
   })
 
 
@@ -41,11 +44,20 @@ class OperandFetch()(implicit c: Configuration) extends Module {
 
   io.ROBPort.Address := Mux(hasToStall, valueReg.prs.map(_.id).toVec, io.In.bits.prs.map(_.id).toVec)
 
-
-
-  when(!hasToStall){
+  when(!hasToStall) {
     valueReg := io.In.bits
     delayReg := io.In.valid
   }
+
+  val allocatorPushBack = io.eventBus.valid && ((io.eventBus.bits.eventType.isOneOf(EventType.Branch) && io.eventBus.bits.misprediction) || io.eventBus.bits.eventType.isOneOf(EventType.Jump))
+  val kill = shouldBeKilled(valueReg.prd, io.eventBus.bits.pr, io.allocationInfo.oldest, io.allocationInfo.youngest, io.allocationInfo.wrapped)
+  when(allocatorPushBack && kill) {
+    delayReg := 0.B
+    io.Issue.valid := 0.B
+    io.In.ready := 0.B
+  }
+
+
+
 }
 

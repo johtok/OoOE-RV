@@ -40,7 +40,7 @@ class Core(program: Program, config: Configuration) extends Module {
     val retirement = Module(new Retirement)
     val memQueue = Module(new MemQueue)
     val eventArbiter = Module(new EventArbiter)
-    val DataMem = Module(new DataMem(program.getBytes.map(_.litValue)))
+    val DataMem = Module(new DataMem(16*1024, program.getBytes.map(_.litValue)))
   }
 
   object Alloc {
@@ -74,11 +74,15 @@ class Core(program: Program, config: Configuration) extends Module {
 
   Stage.operandFetch.io.expand(
     _.In <> Stage.issueQueue.io.Issue,
-    _.ROBPort <> rob.io.data
+    _.ROBPort <> rob.io.data,
+    _.allocationInfo <> Alloc.physRegId.io.state,
+    _.eventBus <> Stage.eventArbiter.io.EventOut
   )
 
   Stage.exe.io.expand(
     _.Instruction <> Stage.operandFetch.io.Issue,
+    _.allocationInfo <> Alloc.physRegId.io.state,
+    _.eventBusIn <> Stage.eventArbiter.io.EventOut
   )
 
   Stage.memQueue.io.expand(
