@@ -144,11 +144,15 @@ class Decoder()(implicit c: Configuration) extends Module {
 
   hasToStall := validReg && !io.issueStream.ready
 
+  val readySelects = RegInit(VecInit(0.B, 0.B))
 
   when(!hasToStall) {
     validReg := Mux(insertBubble, 0.B, hasValidInstruction)
 
     outReg.prs.map(_.id).zip(prs).connectPairs()
+
+    readySelects(0) := opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc)
+    readySelects(1) := opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal)
 
     outReg.expand(
       _.opcode := opcode,
@@ -164,8 +168,8 @@ class Decoder()(implicit c: Configuration) extends Module {
   val useSpecMapReg = RegEnable(mapSelector.io.read.useSpec, VecInit(0.B, 0.B), !hasToStall)
 
   io.issueStream.bits := outReg
-  io.issueStream.bits.prs(0).ready := Mux(RegNext(opcode.isOneOf(Opcode.jal, Opcode.lui, Opcode.auipc), 0.B), 1.B, !useSpecMapReg(0) || (useSpecMapReg(0) && io.robPort.ready(0)))
-  io.issueStream.bits.prs(1).ready := Mux(RegNext(opcode.isOneOf(Opcode.load, Opcode.immediate, Opcode.auipc, Opcode.lui, Opcode.jalr, Opcode.jal), 0.B), 1.B, !useSpecMapReg(1) || (useSpecMapReg(1) && io.robPort.ready(1)))
+  io.issueStream.bits.prs(0).ready := Mux(readySelects(0), 1.B, !useSpecMapReg(0) || (useSpecMapReg(0) && io.robPort.ready(0)))
+  io.issueStream.bits.prs(1).ready := Mux(readySelects(1), 1.B, !useSpecMapReg(1) || (useSpecMapReg(1) && io.robPort.ready(1)))
 
   io.instructionStream.ready := allowedToProgress
   io.issueStream.valid := validReg && !(io.eventBus.valid && ((io.eventBus.bits.eventType.isOneOf(EventType.Branch) && io.eventBus.bits.misprediction) || io.eventBus.bits.eventType.isOneOf(EventType.Jump)))

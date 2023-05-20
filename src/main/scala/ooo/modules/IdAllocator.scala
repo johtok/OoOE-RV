@@ -31,9 +31,18 @@ object IdAllocator {
 
   def shouldBeKilled(id: UInt, cut: UInt, oldest: UInt, youngest: UInt, wrapped: Bool): Bool = {
     // TODO: verify
+    /*
     Mux(!wrapped && cut >= oldest,
       id > cut || id < youngest,
       id > cut && id <= youngest
+    )
+     */
+    Mux(!wrapped,
+      cut < id && id < youngest,
+      Mux(cut >= oldest,
+        id > cut || id < youngest,
+        cut < id && id < youngest
+      )
     )
   }
 

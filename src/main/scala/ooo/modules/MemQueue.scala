@@ -74,8 +74,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   io.Full := (FullCnt >= Fullsize.U).asBool
 
-  val Kill = Wire(Bool())
-  Kill := io.event.valid && io.event.bits.eventType === Branch
+  val allocatorPushBack = io.event.valid && ((io.event.bits.eventType.isOneOf(EventType.Branch) && io.event.bits.misprediction) || io.event.bits.eventType.isOneOf(EventType.Jump))
 
 
   val WriteCarry = Wire(Vec(c.memQueueSize + 1, Bool()))
@@ -89,7 +88,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   condCheck := (io.event.bits.eventType.isOneOf(EventType.Jump, EventType.Branch) && shouldBeKilled(io.Package.bits.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped))
 
-  when(io.Package.valid && !condCheck){
+  when(io.Package.valid){ // && !condCheck){
     for(i <- 0 until c.memQueueSize){
       when(!WriteCarry(i)){
         when(MemQueue(i).empty){
@@ -107,9 +106,10 @@ class MemQueue()(implicit c: Configuration) extends Module {
 
   // Kill 
 
-  when(Kill){
+  when(allocatorPushBack){
     for(i <- 0 until c.memQueueSize){
-      when(shouldBeKilled(MemQueue(i).In.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped)){
+      val kill = shouldBeKilled(MemQueue(i).In.prd, io.event.bits.pr, io.StatePort.oldest, io.StatePort.youngest, io.StatePort.wrapped)
+      when(kill){
         MemQueue(i).empty := true.B
       }
     }
@@ -132,6 +132,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
   //val ReadDataID = RegInit(PhysRegisterId())
   val ReadDataID = Reg(PhysRegisterId())
   val ReadType = Reg(UInt(3.W))
+  val pc = RegInit(0.U(32.W))
 
 
 
@@ -170,6 +171,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
               ReadDataExpect := true.B // Indicates that the system should expect readdata soon
               ReadDataID := MemQueue(i).In.prd
               ReadType := MemQueue(i).In.func
+              pc := MemQueue(i).In.pc
             }
 
             MemQueue(i).empty := true.B
@@ -202,6 +204,7 @@ class MemQueue()(implicit c: Configuration) extends Module {
         "b101".U -> readData(15,0)
       )
       io.EventOut.valid := true.B
+      io.EventOut.bits.pc := pc
 
       io.EventOut.bits.eventType := CompletionWithValue
     
