@@ -3,8 +3,10 @@ package ooo.boards
 import chisel3._
 import chisel3.experimental.Analog
 import chisel3.util.{Counter, Fill, log2Ceil}
+import ooo.{Configuration, Core}
 import ooo.boards.DE2_115.{SdramPort, SevenSegmentDigit, SramPort, UartPort}
-import ooo.util.{TickGen, TriStateDriver, UIntExtension}
+import ooo.modules.{BufferedTx, RAM, Rx}
+import ooo.util.{BundleExpander, Program, TickGen, TriStateDriver, UIntExtension}
 
 
 class DE2_115 extends Module {
@@ -27,18 +29,84 @@ class DE2_115 extends Module {
     io.sdram.init()
     TriStateDriver(io.sram.data)(0.U, 1.B)
     TriStateDriver(io.sdram.data)(0.U, 1.B)
+    io.redLed := 0.U
+    io.greenLed := 0.U
 
-    val tick = TickGen(50000000, 8)
+    implicit val c = Configuration.default()
 
-    val (counter, _) = Counter(0 until 0xFFFFFFFF, tick)
 
-    io.greenLed := (counter(0) && io.button(2)) ## Fill(8, counter(0) && io.button(1))
-    io.redLed := Fill(18, counter(0) && io.button(0))
+    val core = Module(new Core(Program.load("src/test/programs/loop.bin"), c))
 
-    counter
+    val mem = Module(new RAM( 0x1000))
+    mem.io.request.valid := 0.B
+    mem.io.request.bits := DontCare
+    mem.io.response.ready := 1.B
+
+    val uartSender = Module(new BufferedTx(50000000, 9600))
+    uartSender.io.channel.valid := 0.B
+    uartSender.io.channel.bits := DontCare
+    val uartReceiver = Module(new Rx(50000000, 9600))
+    uartReceiver.io.channel.ready := 0.B
+    io.uart.tx := uartSender.io.txd
+    uartReceiver.io.rxd := io.uart.rx
+
+    val digitReg = RegInit(0.U((8*4).W))
+
+    val valid = core.io.mem.get.request.valid
+    val isWrite = core.io.mem.get.request.bits.isWrite
+    val writeData = core.io.mem.get.request.bits.WriteData
+    val address = core.io.mem.get.request.bits.Address
+
+    val ramAccess = address(31, 12) === 0.U
+    val digitAccess = address(31, 12) === 1.U
+    val uartAccess = address(31, 12) === 2.U
+
+    when(digitAccess) {
+      when(valid && isWrite) {
+        digitReg := writeData
+      }
+    }.elsewhen(uartAccess) {
+      when(valid && isWrite) {
+        uartSender.io.channel.expand(
+          _.valid := 1.B,
+          _.bits := writeData(7,0)
+        )
+      }
+    }.otherwise {
+      mem.io.request <> core.io.mem.get.request
+    }
+
+    when(RegNext(digitAccess && !isWrite)) {
+      core.io.mem.get.response.expand(
+        _.valid := 1.B,
+        _.bits.readData := digitReg
+      )
+    }.elsewhen(RegNext(uartAccess && !isWrite)) {
+      val statusRead = RegNext(address(0).asBool)
+      uartReceiver.io.channel.ready := !statusRead
+      core.io.mem.get.response.expand(
+        _.valid := 1.B,
+        _.bits.readData := Mux(statusRead, uartReceiver.io.channel.valid.asUInt, uartReceiver.io.channel.bits)
+      )
+    }.elsewhen(RegNext(ramAccess && !isWrite)) {
+      core.io.mem.get.response.expand(
+        _.valid := 1.B,
+        _.bits.readData := digitReg
+      )
+    }.otherwise {
+      core.io.mem.get.response.expand(
+        _.valid := 0.B,
+        _.bits.readData := DontCare
+      )
+    }
+
+
+    digitReg
       .groupBits(4)
       .zip(io.digits)
       .foreach { case (num, digit) => digit.drive(num) }
+
+    core.io.mem.get.request.ready := 1.B
 
   }
 }

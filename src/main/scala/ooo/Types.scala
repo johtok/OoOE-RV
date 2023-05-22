@@ -97,7 +97,7 @@ object Types {
   }
 
 
-  class MemPort(implicit c: Configuration) extends Bundle{
+  class MemPort extends Bundle{
     val request = Decoupled(new Bundle {
       val Address = Word()
       val WriteData = Word()

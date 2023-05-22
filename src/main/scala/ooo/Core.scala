@@ -4,16 +4,16 @@ package ooo
 import chisel3._
 import ooo.Core.CoreIO
 import ooo.Types.{MemPort, Word}
-import ooo.modules.{Decoder, EventArbiter, Execute, IdAllocator, InstructionStreamer, IssueQueue, MemQueue, OperandFetch, ReorderBuffer, Retirement, DataMem}
+import ooo.modules.{DataMem, Decoder, EventArbiter, Execute, IdAllocator, InstructionStreamer, IssueQueue, MemQueue, OperandFetch, ReorderBuffer, Retirement, SRAM}
 import ooo.util.Program
 import ooo.util._
 
 object Core {
 
-  def main(args: Array[String]): Unit = emitVerilog(new Core(Program.random(), Configuration.default()))
+  def main(args: Array[String]): Unit = emitVerilog(new Core(Program.load("src/test/programs/loop.bin"), Configuration.default()))
 
   class CoreIO()(implicit c: Configuration) extends Bundle {
-    //val mem = new MemPort
+    val mem = if(!c.simulation) Some(new MemPort) else None
   }
 
 }
@@ -40,7 +40,7 @@ class Core(program: Program, config: Configuration) extends Module {
     val retirement = Module(new Retirement)
     val memQueue = Module(new MemQueue)
     val eventArbiter = Module(new EventArbiter)
-    val DataMem = Module(new DataMem(0x100000, program.getBytes.map(_.litValue)))
+    val DataMem = if(c.simulation) Some(Module(new SRAM(0x40000, Some(program.getBytes.map(_.litValue))))) else None
   }
 
   object Alloc {
@@ -105,11 +105,12 @@ class Core(program: Program, config: Configuration) extends Module {
     _.ExecuteIn <> Stage.exe.io.eventBus,
   )
 
-  //io.mem <> Stage.memQueue.io.MemPort
+  if(c.simulation) {
+    Stage.DataMem.get.io  <> Stage.memQueue.io.MemPort
+  } else {
+    io.mem.get <> Stage.memQueue.io.MemPort
+  }
 
-  Stage.DataMem.io.expand(
-    _.MemPort <> Stage.memQueue.io.MemPort
-  )
 
   rob.io.eventBus <> Stage.eventArbiter.io.EventOut
 

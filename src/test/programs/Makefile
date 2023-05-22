@@ -23,6 +23,14 @@ res: ${RES}
 	$(GCC)-gcc -ffreestanding -nostartfiles -nostdlib -nodefaultlibs -Wl,-T,linker.ld $< -o $@ -march=rv32i -mabi=ilp32
 	$(GCC)-objdump $@ -d
 
+demo.out: demo.c
+	$(GCC)-gcc -ffreestanding -nostartfiles -nostdlib -nodefaultlibs -Wl,-T,linker.ld $< -o $@ -march=rv32i -mabi=ilp32 -Ofast
+	$(GCC)-objdump $@ -D
+
+demo.bin: demo.out
+	$(GCC)-objcopy -O binary demo.out demo.bin
+	$(GCC)-objcopy -O binary demo.out demo.data.bin -j .data
+
 %.out: %.s
 	$(GCC)-as $< -o $@ -march=rv32i -mabi=ilp32
 	$(GCC)-objdump $@ -d
