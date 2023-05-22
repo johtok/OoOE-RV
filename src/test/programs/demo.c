@@ -7,7 +7,6 @@ volatile char *const uartBuffer = (char *) 0x3000;
 volatile char *const uartStatus = (char *) 0x3001;
 
 
-const char msg[] = "Hello World!\n";
 
 char uartRead(){
     return *uartBuffer;
@@ -33,12 +32,6 @@ void updateDigits(int value){
 
 
 int main(){
-
-    for(int i = 0; i < sizeof(msg); i++) {
-        while(!uartReadyToSend()) {}
-
-        uartWrite(msg[i]);
-    }
 
     while(1) {
 

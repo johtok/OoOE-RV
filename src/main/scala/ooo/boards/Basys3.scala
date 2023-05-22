@@ -124,7 +124,7 @@ object Basys3 {
       val digitSelect = RegInit(0.U(2.W))
       when(tick) { digitSelect := digitSelect + 1.U }
       segments := table(bits.groupBits(4).toVec.apply(digitSelect))
-      digitEnable := UIntToOH(digitSelect, 4)
+      digitEnable := ~UIntToOH(digitSelect, 4)
     }
   }
 
